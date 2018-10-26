@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Home</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Account</th>
+            <th>User</th>
+            <th>Name</th>
+            <th>Create date</th>
+            <th>Send date</th>
+            <th>SMS Type</th>
+            <th>Priority</th>
+            <th>TPS</th>
+            <th>Recipients</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+            <tr th:if="${previews.isEmpty()}">
+                <td colspan="10"> No previews available</td>
+            </tr>
+            <tr th:each="item: ${previews}">
+                <td th:text="${item.accountName}"> account </td>
+                <td th:text="${item.username}"> user </td>
+                <td th:text="${item.name}"> name </td>
+                <td th:text="${item.createDate}"> create date </td>
+                <td th:text="${item.sendDate}"> send date </td>
+                <td th:text="${item.type}"> type </td>
+                <td th:text="${item.priority}"> priority </td>
+                <td th:text="${item.tps}"> tps </td>
+                <td th:text="${item.recipientsCount}"> recipients count</td>
+                <td th:text="${item.status}"> status </td>
+            </tr>
+        </tbody>
+    </table>
+
+
+</div>
+
+</body>

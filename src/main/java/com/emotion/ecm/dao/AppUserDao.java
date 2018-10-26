@@ -9,4 +9,6 @@ public interface AppUserDao extends JpaRepository<AppUser, Integer> {
 
     Optional<AppUser> findByUsername(String username);
 
+    Optional<AppUser> findByEmail(String email);
+
 }

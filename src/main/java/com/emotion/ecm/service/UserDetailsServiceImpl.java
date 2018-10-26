@@ -1,8 +1,6 @@
 package com.emotion.ecm.service;
 
-import com.emotion.ecm.dao.AppRoleDao;
 import com.emotion.ecm.dao.AppUserDao;
-import com.emotion.ecm.model.AppRole;
 import com.emotion.ecm.model.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,20 +11,18 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service("userDetailsService")
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     private AppUserDao appUserDao;
-    private AppRoleDao appRoleDao;
 
     @Autowired
-    public UserDetailsServiceImpl(AppUserDao appUserDao, AppRoleDao appRoleDao) {
+    public UserDetailsServiceImpl(AppUserDao appUserDao) {
         this.appUserDao = appUserDao;
-        this.appRoleDao = appRoleDao;
     }
 
     @Override
@@ -43,12 +39,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     private List<GrantedAuthority> getGrantedAuthorities(AppUser user) {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        List<AppRole> roles = appRoleDao.findAllByUser(user);
-        for (AppRole role : roles) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
-        }
-        return authorities;
+        return user.getRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
+                .collect(Collectors.toList());
     }
 
 }

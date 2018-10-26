@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
+    @Autowired
     @Qualifier("userDetailsService")
     private UserDetailsService userDetailsService;
 
@@ -49,26 +50,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
 
         http.authorizeRequests()
-                .antMatchers("/login", "/register/**").permitAll()
-                .antMatchers("/admin/**").access("hasRole('ADMIN')")
-                .antMatchers("/user**").access("hasRole('USER') or hasRole('ADMIN')")
-                .antMatchers("/home**").hasAnyRole()
+                .antMatchers("/", "/index", "/register").permitAll()
+                .antMatchers("/admin").hasRole("ADMIN")
                 .anyRequest().authenticated()
                 .and()
-                .formLogin()
-                .loginPage("/login")
-                .loginProcessingUrl("/login")
-                .usernameParameter("username").passwordParameter("password")
-                .failureUrl("/login?error")
-                .successForwardUrl("/login")
+                .formLogin().loginPage("/login").permitAll()
                 .and()
-                .logout()
-                .and()
-                .rememberMe()
-                .key("rememberMeKey")
-                .rememberMeCookieName("rememberMeCookie")
-                .alwaysRemember(true)
-                .tokenValiditySeconds(180)
+                .logout().permitAll()
                 .and()
                 .csrf().disable();
     }
