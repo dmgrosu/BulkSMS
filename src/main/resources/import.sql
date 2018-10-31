@@ -1,5 +1,11 @@
-insert into tb_account values (1,'emotion');
+insert into tb_account values (1, 0,'emotion', 200);
 insert into tb_user values (1,'dmitri.grosu@gmail.com','Dmitri','Grosu','$2a$10$l2jG0pR9uwYEyTkycQmaWefKL2vxgmJU/IDobyZrNF17hCQjNQ1uS','sysadmin',1);
 insert into tb_role values (1,'ADMIN');
 insert into tb_role values (2,'USER');
 insert into tb_user_role values (1,1);
+insert into tb_sms_type values (1, 0, 'simple');
+insert into tb_sms_type values (2, 0, 'hidden');
+insert into tb_sms_type values (3, 0, 'flash');
+insert into tb_sms_priority values (1, 0, 'normal');
+insert into tb_sms_priority values (2, 0, 'low');
+insert into tb_sms_priority values (3, 0, 'high');

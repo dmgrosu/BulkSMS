@@ -2,6 +2,7 @@ package com.emotion.ecm.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
 
@@ -9,6 +10,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "TB_SMS_PRIORITY")
+@Where(clause = "DELETED=0")
 public class SmsPriority {
 
     @Id
@@ -17,5 +19,8 @@ public class SmsPriority {
 
     @Column(name = "NAME")
     private String name;
+
+    @Column(name = "DELETED")
+    private boolean deleted;
 
 }

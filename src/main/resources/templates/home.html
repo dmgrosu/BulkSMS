@@ -11,7 +11,8 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </head>
 <body>
-<p th:text="'Current user: '+${user.getUsername()}">  </p>
+
+<div th:replace="fragments/header"></div>
 
 <div class="container">
     <h3> Home page</h3>

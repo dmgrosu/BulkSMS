@@ -21,8 +21,6 @@ public class HomeController {
 
     @GetMapping
     public String homePage(Model model) {
-        AppUser user = userService.getAuthenticatedUser();
-        model.addAttribute("user", user);
         return "home";
     }
 

@@ -2,6 +2,7 @@ package com.emotion.ecm.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
@@ -14,6 +15,7 @@ import javax.persistence.GenerationType;
 @NoArgsConstructor
 @Entity
 @Table(name = "TB_SMS_TYPE")
+@Where(clause = "DELETED=0")
 public class SmsType {
 
     @Id
@@ -22,5 +24,8 @@ public class SmsType {
 
     @Column(name = "NAME")
     private String name;
+
+    @Column(name = "DELETED")
+    private boolean deleted;
 
 }
