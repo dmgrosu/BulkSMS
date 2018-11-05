@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -28,5 +29,11 @@ public class Contact {
 
     @Column(name = "DELETED")
     private boolean deleted;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "TB_CONTACT_GROUP",
+            joinColumns = @JoinColumn(name = "CONTACT_ID", referencedColumnName = "ID"),
+            inverseJoinColumns = @JoinColumn(name = "GROUP_ID", referencedColumnName = "ID"))
+    private Set<Group> groups;
 
 }

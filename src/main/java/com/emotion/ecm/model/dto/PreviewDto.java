@@ -8,6 +8,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -34,8 +35,6 @@ public class PreviewDto {
     private short tps;
     private int recipientsCount;
     private String previewStatus;
-    private int accountId;
-    private String accountName;
     private int typeId;
     private String type;
     private int priorityId;
@@ -45,5 +44,8 @@ public class PreviewDto {
     private String status;
     private String expirationTime;
     private boolean dlr;
+    private int accountDataId;
+    private String accountDataName;
+    private Set<Integer> groupIds;
 
 }

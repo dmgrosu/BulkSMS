@@ -20,24 +20,21 @@ import java.util.List;
 public class SmsPreviewService {
 
     private SmsPreviewDao smsPreviewDao;
-    private AccountDao accountDao;
     private AppUserDao userDao;
     private SmsTypeDao typeDao;
     private SmsPriorityDao priorityDao;
 
     @Autowired
-    public SmsPreviewService(SmsPreviewDao smsPreviewDao, AccountDao accountDao,
-                             AppUserDao userDao, SmsTypeDao typeDao,
-                             SmsPriorityDao priorityDao) {
+    public SmsPreviewService(SmsPreviewDao smsPreviewDao, AppUserDao userDao,
+                             SmsTypeDao typeDao, SmsPriorityDao priorityDao) {
         this.smsPreviewDao = smsPreviewDao;
-        this.accountDao = accountDao;
         this.userDao = userDao;
         this.typeDao = typeDao;
         this.priorityDao = priorityDao;
     }
 
-    public List<SmsPreview> getAllByAccountAndUser(Account account, AppUser user) {
-        return smsPreviewDao.findAllByAccountAndUser(account, user);
+    public List<SmsPreview> getAllByUser(AppUser user) {
+        return smsPreviewDao.findAllByUser(user);
     }
 
     public List<PreviewDto> convertPreviewListToDto(List<SmsPreview> smsPreviews) {
@@ -50,8 +47,6 @@ public class SmsPreviewService {
 
     public PreviewDto convertPreviewToDto(SmsPreview preview) {
         PreviewDto result = new PreviewDto();
-        result.setAccountId(preview.getAccount().getId());
-        result.setAccountName(preview.getAccount().getName());
         result.setUsername(preview.getUser().getUsername());
         result.setUserId(preview.getUser().getId());
         result.setName(preview.getName());
@@ -68,7 +63,6 @@ public class SmsPreviewService {
 
         SmsPreview result = new SmsPreview();
 
-        result.setAccount(accountDao.getOne(dto.getAccountId()));
         result.setUser(userDao.getOne(dto.getUserId()));
         result.setName(dto.getName());
         result.setExpirationTime(dto.getExpirationTime());

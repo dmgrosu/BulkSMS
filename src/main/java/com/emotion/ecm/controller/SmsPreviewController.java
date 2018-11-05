@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,23 +29,25 @@ public class SmsPreviewController {
     private AppUserService userService;
     private SmsTypeService typeService;
     private SmsPriorityService priorityService;
-    private AccountService accountService;
+    private AccountDataService accountDataService;
+    private GroupService groupService;
 
     @Autowired
     public SmsPreviewController(SmsPreviewService smsPreviewService, AppUserService userService,
                                 SmsTypeService typeService, SmsPriorityService priorityService,
-                                AccountService accountService) {
+                                GroupService groupService, AccountDataService accountDataService) {
         this.smsPreviewService = smsPreviewService;
         this.userService = userService;
         this.typeService = typeService;
         this.priorityService = priorityService;
-        this.accountService = accountService;
+        this.groupService = groupService;
+        this.accountDataService = accountDataService;
     }
 
     @GetMapping(value = "/list")
     public String showList(Model model) {
         AppUser user = userService.getAuthenticatedUser();
-        List<SmsPreview> smsPreviews = smsPreviewService.getAllByAccountAndUser(user.getAccount(), user);
+        List<SmsPreview> smsPreviews = smsPreviewService.getAllByUser(user);
         List<PreviewDto> previews = new ArrayList<>();
         if (!smsPreviews.isEmpty()) {
             previews = smsPreviewService.convertPreviewListToDto(smsPreviews);
@@ -63,12 +64,13 @@ public class SmsPreviewController {
         PreviewDto previewDto = new PreviewDto();
         previewDto.setSendDate(DateUtil.formatDate(LocalDateTime.now()));
         previewDto.setUserId(currUser.getId());
-        previewDto.setAccountId(account.getId());
         previewDto.setTps(account.getTps());
 
         model.addAttribute("preview", previewDto);
         model.addAttribute("types", typeService.getAll());
         model.addAttribute("priorities", priorityService.getAll());
+        model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
+        model.addAttribute("groupList", groupService.getAllByUser(currUser));
 
         return "preview/form";
     }
