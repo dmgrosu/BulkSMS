@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Home</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div th:replace="fragments/header"></div>
+
+<div class="container">
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <form class="form-inline" th:action="@{/accountData/create}" th:method="post"
+                  th:object="${accountDataDto}" enctype="multipart/form-data">
+
+                <div class="alert alert-warning" th:if="${error}">
+                    File saving error!
+                </div>
+
+                <div class="form-group" th:classappend="${#fields.hasErrors('name')}? 'has-error':''">
+                    <label for="name">Add new file:</label>
+                    <input type="text" class="form-control" id="name"
+                           placeholder="name" th:field="*{name}">
+                    <p class="error-message"
+                       th:each="error: ${#fields.errors('name')}"
+                       th:text="${error}">Validation error</p>
+                </div>
+                <div class="form-group" th:classappend="${#fields.hasErrors('name')}? 'has-error':''">
+                    <input type="file" class="form-control" id="inputFile"
+                           placeholder="file name" th:field="*{file}">
+                    <p class="error-message"
+                       th:each="error: ${#fields.errors('name')}"
+                       th:text="${error}">Validation error</p>
+                </div>
+                <div class="checkbox">
+                    <label><input type="checkbox" th:field="*{override}"> override if exists</label>
+                </div>
+                <button type="submit" class="btn btn-info">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>File name</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${accountDataList.isEmpty()}">
+            <td colspan="3"> no data available</td>
+        </tr>
+        <tr th:each="item: ${accountDataList}">
+            <td th:text="${item.name}"> account</td>
+            <td th:text="${item.fileName}"> user</td>
+            <td>
+                <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown">...
+                    <span class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    <li><a th:href="@{/accountData/edit}">edit</a></li>
+                    <li><a href="#">show content</a></li>
+                    <li><a href="#">delete</a></li>
+                </ul>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+
+<div id="successModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h3 class="modal-title">Import finished</h3>
+            </div>
+            <div class="modal-body">
+                <h5 th:text="${'Valid numbers count: '+validDataCount}"></h5>
+                <h5 th:text="${'Invalid numbers count: '+invalidDataCount}"></h5>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info" data-dismiss="modal">Ok</button>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    $(window).on('load', function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            $('#successModal').modal('show');
+        }
+    });
+
+</script>

@@ -3,6 +3,7 @@ package com.emotion.ecm.model;
 import com.emotion.ecm.enums.PreviewStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
@@ -13,7 +14,8 @@ import java.util.Set;
 @NoArgsConstructor
 @Entity
 @Table(name = "TB_SMS_PREVIEW")
-@Where(clause = "DELETED=0")
+@SQLDelete(sql = "UPDATE TB_SMS_PREVIEW SET deleted=true WHERE id=?")
+@Where(clause = "deleted=false")
 public class SmsPreview {
 
     @Id
@@ -65,6 +67,10 @@ public class SmsPreview {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "SMS_TYPE_ID")
     private SmsType smsType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SMPP_ADDRESS_ID")
+    private SmppAddress smppAddress;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ACCOUNT_DATA_ID")

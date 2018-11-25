@@ -16,9 +16,9 @@
 
 <div class="container">
 
-    <a class="btn btn-primary" th:href="@{/preview/create}">Create preview</a>
+    <a class="btn btn-info" th:href="@{/preview/create}">Create preview</a>
 
-    <table class="table">
+    <table class="table table-condensed table-bordered">
         <thead>
         <tr>
             <th>Account</th>
@@ -31,11 +31,12 @@
             <th>TPS</th>
             <th>Recipients</th>
             <th>Status</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
         <tr th:if="${previews.isEmpty()}">
-            <td colspan="10"> No previews available</td>
+            <td colspan="11" class="text-center">No previews available</td>
         </tr>
         <tr th:each="item: ${previews}">
             <td th:text="${item.accountName}"> account</td>

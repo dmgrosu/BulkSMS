@@ -1,6 +1,5 @@
 package com.emotion.ecm.controller;
 
-import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.service.AppUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;

@@ -10,19 +10,28 @@ import javax.persistence.*;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "TB_SMS_PRIORITY")
-@SQLDelete(sql = "UPDATE TB_SMS_PRIORITY SET deleted=true WHERE id=?")
+@Table(name = "TB_SMPP_ADDRESS")
+@SQLDelete(sql = "UPDATE TB_SMPP_ADDRESS SET deleted=true WHERE id=?")
 @Where(clause = "deleted=false")
-public class SmsPriority {
+public class SmppAddress {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "NAME")
-    private String name;
+    @Column(name = "ADDRESS")
+    private String address;
+
+    @Column(name = "TON")
+    private byte ton;
+
+    @Column(name = "NPI")
+    private byte npi;
 
     @Column(name = "DELETED")
     private boolean deleted;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ACCOUNT_ID")
+    private Account account;
 }

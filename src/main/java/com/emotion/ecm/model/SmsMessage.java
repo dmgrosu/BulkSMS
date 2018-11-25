@@ -3,6 +3,7 @@ package com.emotion.ecm.model;
 import com.emotion.ecm.enums.MessageStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
@@ -12,7 +13,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @Entity
 @Table(name = "TB_SMS_MESSAGE")
-@Where(clause = "DELETED=0")
+@SQLDelete(sql = "UPDATE TB_SMS_MESSAGE SET deleted=true WHERE id=?")
+@Where(clause = "deleted=false")
 public class SmsMessage {
 
     @Id

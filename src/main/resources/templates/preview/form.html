@@ -28,15 +28,16 @@
         <div class="form-group">
             <div class="col-sm-offset-2 col-sm-10">
                 <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" href="#filePanel">From file</a></li>
-                    <li><a data-toggle="tab" href="#groupPanel">From group</a></li>
-                    <li><a data-toggle="tab" href="#numbersPanel">Numbers</a></li>
+                    <li class="active"><a data-toggle="tab" href="#filePanel" onclick="selectSource(this)">From file</a></li>
+                    <li><a data-toggle="tab" href="#groupPanel" onclick="selectSource(this)">From group</a></li>
+                    <li><a data-toggle="tab" href="#numbersPanel" onclick="selectSource(this)">Numbers</a></li>
                 </ul>
 
                 <div class="tab-content">
                     <div id="filePanel" class="tab-pane fade in active">
                         <label for="fileSelect"> Select file:</label>
                         <select th:field="*{accountDataId}" class="form-control" id="fileSelect">
+                            <option th:text="'---'" th:value="0" id="defaultDataId"></option>
                             <option th:each="item : ${accountDataList}"
                                     th:value="${item.id}"
                                     th:text="${item.name}">
@@ -46,6 +47,7 @@
                     <div id="groupPanel" class="tab-pane fade">
                         <label for="groupSelect"> Select groups:</label>
                         <select multiple th:field="*{groupIds}" class="form-control" id="groupSelect">
+                            <option th:text="'---'" th:value="0" id="defaultGroupId"></option>
                             <option th:each="item : ${groupList}"
                                     th:value="${item.id}"
                                     th:text="${item.name}">
@@ -53,8 +55,8 @@
                         </select>
                     </div>
                     <div id="numbersPanel" class="tab-pane fade">
-                        <h3>Menu 2</h3>
-                        <p>Some content in menu 2.</p>
+                        <label for="numbersList"> Numbers(comma separated):</label>
+                        <textarea class="form-control input-sm" rows="4" id="numbersList" onkeyup="checkInput(this)"></textarea>
                     </div>
                 </div>
             </div>
@@ -136,3 +138,27 @@
 </div>
 
 </body>
+
+<script type="text/javascript">
+
+    function selectSource(link) {
+        if (link.hash === '#filePanel') {
+            $('#defaultGroupId').attr('selected','selected');
+            $('#numbersList').val('');
+        } else if (link.hash === '#groupPanel') {
+            $('#defaultDataId').attr('selected','selected');
+            $('#numbersList').val('');
+        } else {
+            $('#defaultGroupId').attr('selected','selected');
+            $('#defaultDataId').attr('selected','selected');
+        }
+    }
+
+    function checkInput(ob) {
+        var invalidChars = /[^0-9, ]/gi;
+        if (invalidChars.test(ob.value)) {
+            ob.value = ob.value.replace(invalidChars,"");
+        }
+    }
+
+</script>

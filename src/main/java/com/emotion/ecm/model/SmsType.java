@@ -2,6 +2,7 @@ package com.emotion.ecm.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import javax.persistence.Entity;
@@ -15,7 +16,8 @@ import javax.persistence.GenerationType;
 @NoArgsConstructor
 @Entity
 @Table(name = "TB_SMS_TYPE")
-@Where(clause = "DELETED=0")
+@SQLDelete(sql = "UPDATE TB_SMS_TYPE SET deleted=true WHERE id=?")
+@Where(clause = "deleted=false")
 public class SmsType {
 
     @Id

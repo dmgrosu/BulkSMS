@@ -4,32 +4,30 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import org.springframework.data.util.Lazy;
 
 import javax.persistence.*;
 
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "TB_ACCOUNT_DATA")
-@SQLDelete(sql = "UPDATE TB_ACCOUNT_DATA SET deleted=true WHERE id=?")
+@Table(name = "SMS_PREFIX")
+@SQLDelete(sql = "UPDATE SMS_PREFIX SET deleted=true WHERE id=?")
 @Where(clause = "deleted=false")
-public class AccountData {
+public class SmsPrefix {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @Column(name = "PREFIX")
+    private String prefix;
+
     @Column(name = "DELETED")
     private boolean deleted;
 
-    @Column(name = "NAME")
-    private String name;
-
-    @Column(name = "FILE_NAME")
-    private String fileName;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "USER_ID")
-    private AppUser user;
+    @JoinColumn(name = "SMS_PREFIX_GROUP_ID")
+    private SmsPrefixGroup prefixGroup;
 
 }
