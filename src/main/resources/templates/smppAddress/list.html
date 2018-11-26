@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Home</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div th:replace="fragments/header"></div>
+
+<div class="container-fluid col-md-12">
+
+    <a class="btn btn-info btn-sm" onclick="showModal('addSmppAddress',0,'')">Add new address</a>
+
+    <table class="table table-condensed table-hover table-bordered">
+        <thead>
+        <tr class="text-center">
+            <th>Address</th>
+            <th>TON</th>
+            <th>NPI</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${smppAddresses.isEmpty()}">
+            <td colspan="3" class="text-center"> No addresses available</td>
+        </tr>
+        <tr th:each="item:${smppAddresses}">
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.address}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showModal(\'editGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal(\'deleteGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> delete</a>
+                        </li>
+                    </ul>
+
+                </span>
+            </td>
+            <td>
+                <span class="dropdown" th:each="item:${group.prefixes}">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.prefix}+','"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showModal(\'editPrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal(\'deletePrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+            </td>
+            <td>
+                <a href="#" th:onclick="'showModal(\'addPrefix\','+${group.groupId}+',\''+${group.groupName}+'\')'">
+                    add new prefix
+                </a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="modalAdd" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 id="modalAddHeader"></h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <input type="hidden" id="saveType">
+                    <input type="hidden" id="groupId">
+                    <input type="hidden" id="prefixGroupId">
+                    <input type="hidden" id="prefixId">
+                    <input id="inputModalName" required="required" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="saveElement()">Save</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modalDeleteHeader"></h4>
+                <input type="hidden" id="deleteType">
+                <input type="hidden" id="deletePrefixId">
+                <input type="hidden" id="deleteGroupId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function showModal(type, elementId, elementValue) {
+        var modalWindow = $('#modalAdd');
+        var prefixIdEl = $('#prefixId');
+        var groupIdEl = $('#groupId');
+        var prefixGroupIdEl = $('#prefixGroupId');
+        var inputNameEl = $('#inputModalName');
+        var modalHeader = $('#modalAddHeader');
+        var modalDeleteHeader = $('#modalDeleteHeader');
+        var deletePrefixIdEl = $('#deletePrefixId');
+        var deleteGroupIdEl = $('#deleteGroupId');
+        var saveTypeEl = $('#saveType');
+        var deleteTypeEl = $('#deleteType');
+        prefixIdEl.val(0);
+        groupIdEl.val(0);
+        prefixGroupIdEl.val('');
+        inputNameEl.val('');
+        modalHeader.text('');
+        modalDeleteHeader.text('');
+        saveTypeEl.val('');
+        deleteTypeEl.val('');
+        if (type === 'addGroup') {
+            modalHeader.text('Add new group:');
+            inputNameEl.prop('type', 'text');
+            saveTypeEl.val('group');
+        } else if (type === 'addPrefix') {
+            modalHeader.text('Add new prefix in group ' + elementValue + ':');
+            prefixGroupIdEl.val(elementId);
+            inputNameEl.prop('type', 'number');
+            saveTypeEl.val('prefix');
+        } else if (type === 'editPrefix') {
+            modalHeader.text('Edit prefix:');
+            inputNameEl.prop('type', 'number');
+            inputNameEl.val(elementValue);
+            prefixIdEl.val(elementId);
+            saveTypeEl.val('prefix');
+        } else if (type === 'editGroup') {
+            groupIdEl.val(elementId);
+            inputNameEl.prop('type', 'text');
+            inputNameEl.val(elementValue);
+            modalHeader.text('Edit group:');
+            saveTypeEl.val('group');
+        } else if (type === 'deletePrefix') {
+            modalWindow = $('#deleteConfirm');
+            modalDeleteHeader.text('Delete prefix ' + elementValue + '?');
+            deletePrefixIdEl.val(elementId);
+            deleteGroupIdEl.val(0);
+            deleteTypeEl.val('prefix');
+        } else if (type === 'deleteGroup') {
+            modalWindow = $('#deleteConfirm');
+            modalDeleteHeader.text('Delete group ' + elementValue + '?');
+            deletePrefixIdEl.val(0);
+            deleteGroupIdEl.val(elementId);
+            deleteTypeEl.val('group');
+        }
+        modalWindow.modal('show');
+    }
+
+    function saveElement() {
+        var elementValue = $('#inputModalName').val();
+        var prefixGroupId = $('#prefixGroupId').val();
+        var prefixId = $('#prefixId').val();
+        var groupId = $('#groupId').val();
+        var data, url;
+        if ($('#saveType').val() === 'group') {
+            url = "/prefix/saveGroup";
+            data = {"groupId": groupId, "groupName": elementValue};
+        } else {
+            url = "/prefix/savePrefix";
+            data = {"prefixId": prefixId, "prefix": elementValue, "groupId": prefixGroupId};
+        }
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: url,
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#modalAdd').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+    function deleteElement() {
+        var data, url;
+        if ($('#deleteType').val() === 'group') {
+            data = {"groupId": $('#deleteGroupId').val()};
+            url = '/prefix/deleteGroup';
+        } else {
+            data = {"prefixId": $('#deletePrefixId').val()};
+            url = '/prefix/deletePrefix';
+        }
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: url,
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+</script>
+
+</body>
