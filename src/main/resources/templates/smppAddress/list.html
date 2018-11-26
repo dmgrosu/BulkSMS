@@ -16,7 +16,7 @@
 
 <div class="container-fluid col-md-12">
 
-    <a class="btn btn-info btn-sm" onclick="showModal('addSmppAddress',0,'')">Add new address</a>
+    <a class="btn btn-info btn-sm" onclick="showModal('add',0,'')">Add new address</a>
 
     <table class="table table-condensed table-hover table-bordered">
         <thead>
@@ -37,33 +37,20 @@
                        th:text="${item.address}"></a>
                     <ul class="dropdown-menu">
                         <li><a href="#"
-                               th:onclick="'showModal(\'editGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> edit</a>
+                               th:onclick="'showModal(\'edit\','+${item.smppAddressId}+',\''+${item.address}+'\')'"> edit</a>
                         </li>
                         <li><a href="#"
-                               th:onclick="'showModal(\'deleteGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> delete</a>
+                               th:onclick="'showModal(\'delete\','+${item.smppAddressId}+',\''+${item.address}+'\')'"> delete</a>
                         </li>
                     </ul>
 
                 </span>
             </td>
             <td>
-                <span class="dropdown" th:each="item:${group.prefixes}">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
-                       th:text="${item.prefix}+','"></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="#"
-                               th:onclick="'showModal(\'editPrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> edit</a>
-                        </li>
-                        <li><a href="#"
-                               th:onclick="'showModal(\'deletePrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> delete</a>
-                        </li>
-                    </ul>
-                </span>
+                <span th:text="${item.ton}"></span>
             </td>
             <td>
-                <a href="#" th:onclick="'showModal(\'addPrefix\','+${group.groupId}+',\''+${group.groupName}+'\')'">
-                    add new prefix
-                </a>
+                <span th:text="${item.npi}"></span>
             </td>
         </tr>
         </tbody>
@@ -78,12 +65,24 @@
                 <h4 id="modalAddHeader"></h4>
             </div>
             <div class="modal-body">
+                <input type="hidden" id="smppAddressId">
                 <div class="form-group">
-                    <input type="hidden" id="saveType">
-                    <input type="hidden" id="groupId">
-                    <input type="hidden" id="prefixGroupId">
-                    <input type="hidden" id="prefixId">
-                    <input id="inputModalName" required="required" class="form-control">
+                    <label for="address" class="control-label col-sm-2">Address:</label>
+                    <div class="col-sm-10">
+                        <input type="text" class="form-control input-sm" id="address">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ton" class="control-label col-sm-2">TON:</label>
+                    <div class="col-sm-10">
+                        <input type="number" class="form-control input-sm" id="ton">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="npi" class="control-label col-sm-2">NPI:</label>
+                    <div class="col-sm-10">
+                        <input type="number" class="form-control input-sm" id="npi">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -99,10 +98,8 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 id="modalDeleteHeader"></h4>
-                <input type="hidden" id="deleteType">
-                <input type="hidden" id="deletePrefixId">
-                <input type="hidden" id="deleteGroupId">
+                <h4> Delete SMPP address?</h4>
+                <input type="hidden" id="deleteSmppAddressId">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
@@ -117,57 +114,21 @@
 
     function showModal(type, elementId, elementValue) {
         var modalWindow = $('#modalAdd');
-        var prefixIdEl = $('#prefixId');
-        var groupIdEl = $('#groupId');
-        var prefixGroupIdEl = $('#prefixGroupId');
-        var inputNameEl = $('#inputModalName');
-        var modalHeader = $('#modalAddHeader');
-        var modalDeleteHeader = $('#modalDeleteHeader');
-        var deletePrefixIdEl = $('#deletePrefixId');
-        var deleteGroupIdEl = $('#deleteGroupId');
-        var saveTypeEl = $('#saveType');
-        var deleteTypeEl = $('#deleteType');
-        prefixIdEl.val(0);
-        groupIdEl.val(0);
-        prefixGroupIdEl.val('');
-        inputNameEl.val('');
-        modalHeader.text('');
-        modalDeleteHeader.text('');
-        saveTypeEl.val('');
-        deleteTypeEl.val('');
-        if (type === 'addGroup') {
-            modalHeader.text('Add new group:');
-            inputNameEl.prop('type', 'text');
-            saveTypeEl.val('group');
-        } else if (type === 'addPrefix') {
-            modalHeader.text('Add new prefix in group ' + elementValue + ':');
-            prefixGroupIdEl.val(elementId);
-            inputNameEl.prop('type', 'number');
-            saveTypeEl.val('prefix');
-        } else if (type === 'editPrefix') {
-            modalHeader.text('Edit prefix:');
-            inputNameEl.prop('type', 'number');
-            inputNameEl.val(elementValue);
-            prefixIdEl.val(elementId);
-            saveTypeEl.val('prefix');
-        } else if (type === 'editGroup') {
-            groupIdEl.val(elementId);
-            inputNameEl.prop('type', 'text');
-            inputNameEl.val(elementValue);
-            modalHeader.text('Edit group:');
-            saveTypeEl.val('group');
-        } else if (type === 'deletePrefix') {
+        var addressIdEl = $('#smppAddressId');
+        var addressEl = $('#Address');
+        var tonEl = $('#ton');
+        var npiEl = $('#npi');
+        var deleteSmppAddressId = $('#deleteSmppAddressId');
+        addressEl.val('');
+        tonEl.val(0);
+        npiEl.val(0);
+        if (type === 'add') {
+        } else if (type === 'edit') {
+            addressIdEl.val(elementId);
+            addressEl.val(elementValue);
+        } else if (type === 'delete') {
             modalWindow = $('#deleteConfirm');
-            modalDeleteHeader.text('Delete prefix ' + elementValue + '?');
-            deletePrefixIdEl.val(elementId);
-            deleteGroupIdEl.val(0);
-            deleteTypeEl.val('prefix');
-        } else if (type === 'deleteGroup') {
-            modalWindow = $('#deleteConfirm');
-            modalDeleteHeader.text('Delete group ' + elementValue + '?');
-            deletePrefixIdEl.val(0);
-            deleteGroupIdEl.val(elementId);
-            deleteTypeEl.val('group');
+            deleteSmppAddressId.val(elementId);
         }
         modalWindow.modal('show');
     }

@@ -2,6 +2,7 @@ package com.emotion.ecm.controller;
 
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmppAddress;
+import com.emotion.ecm.model.dto.SmppAddressDto;
 import com.emotion.ecm.service.AppUserService;
 import com.emotion.ecm.service.SmppAddressService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ public class SmppAddressController {
     public String getList(Model model) {
 
         AppUser currUser = userService.getAuthenticatedUser();
-        List<SmppAddress> smppAddresses = smppAddressService.getAllByAccount(currUser.getAccount());
+        List<SmppAddressDto> smppAddresses = smppAddressService.getAllDtoByAccount(currUser.getAccount());
         model.addAttribute("smppAddresses", smppAddresses);
 
         return "smppAddress/list";
