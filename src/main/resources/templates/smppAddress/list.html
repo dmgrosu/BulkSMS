@@ -64,8 +64,9 @@
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 id="modalAddHeader"></h4>
             </div>
-            <div class="modal-body">
+            <div class="form-horizontal modal-body">
                 <input type="hidden" id="smppAddressId">
+                <input type="hidden" id="accountId">
                 <div class="form-group">
                     <label for="address" class="control-label col-sm-2">Address:</label>
                     <div class="col-sm-10">
@@ -115,15 +116,18 @@
     function showModal(type, elementId, elementValue) {
         var modalWindow = $('#modalAdd');
         var addressIdEl = $('#smppAddressId');
-        var addressEl = $('#Address');
+        var addressEl = $('#address');
         var tonEl = $('#ton');
         var npiEl = $('#npi');
         var deleteSmppAddressId = $('#deleteSmppAddressId');
+        var headerTextEl = $('#modalAddHeader');
         addressEl.val('');
         tonEl.val(0);
         npiEl.val(0);
         if (type === 'add') {
+            headerTextEl.text('Add new SMPP address:');
         } else if (type === 'edit') {
+            headerTextEl.text('Edit SMPP address:');
             addressIdEl.val(elementId);
             addressEl.val(elementValue);
         } else if (type === 'delete') {
@@ -134,18 +138,19 @@
     }
 
     function saveElement() {
-        var elementValue = $('#inputModalName').val();
-        var prefixGroupId = $('#prefixGroupId').val();
-        var prefixId = $('#prefixId').val();
-        var groupId = $('#groupId').val();
+        var accountId = $('#accountId').val();
+        var addressId = $('#smppAddressId').val();
+        var addressValue = $('#address').val();
+        var tonValue = $('#ton').val();
+        var npiValue = $('#npi').val();
         var data, url;
-        if ($('#saveType').val() === 'group') {
-            url = "/prefix/saveGroup";
-            data = {"groupId": groupId, "groupName": elementValue};
-        } else {
-            url = "/prefix/savePrefix";
-            data = {"prefixId": prefixId, "prefix": elementValue, "groupId": prefixGroupId};
-        }
+        url = "/smppAddress/save";
+        data = {
+            "smppAddressId": addressId,
+            "address": addressValue,
+            "ton": tonValue, "npi": npiValue,
+            "accountId": accountId
+        };
         $.ajax({
             type: 'POST',
             contentType: "application/json",
@@ -163,18 +168,11 @@
     }
 
     function deleteElement() {
-        var data, url;
-        if ($('#deleteType').val() === 'group') {
-            data = {"groupId": $('#deleteGroupId').val()};
-            url = '/prefix/deleteGroup';
-        } else {
-            data = {"prefixId": $('#deletePrefixId').val()};
-            url = '/prefix/deletePrefix';
-        }
+        var data = {"smppAddressId": $('#deleteSmppAddressId').val()};
         $.ajax({
             type: 'POST',
             contentType: "application/json",
-            url: url,
+            url: '/smppAddress/delete',
             data: JSON.stringify(data),
             dataType: "JSON",
             success: function () {

@@ -3,7 +3,7 @@ package com.emotion.ecm.validation;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.validation.ObjectError;
+import org.springframework.validation.FieldError;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 public class AjaxResponseBody {
 
-    private String message;
-    private List<ObjectError> errors;
+    private boolean valid;
+    private List<FieldError> errors;
 
 }

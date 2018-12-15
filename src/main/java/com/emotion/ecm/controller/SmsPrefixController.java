@@ -51,31 +51,31 @@ public class SmsPrefixController {
         AjaxResponseBody result = new AjaxResponseBody();
 
         if (errors.hasErrors()) {
-            result.setMessage("fail");
+            result.setValid(false);
         }
 
         try {
             if (prefixDto.getPrefixId() == 0) {
                 if (checkPrefixDuplicate(prefixDto)) {
                     errors.rejectValue("prefix", "duplicate found");
-                    result.setMessage("fail");
+                    result.setValid(false);
                 } else {
                     prefixService.createNewPrefix(prefixDto);
                 }
             } else {
                 prefixService.updatePrefix(prefixDto);
             }
-            result.setMessage("success");
+            result.setValid(true);
         } catch (NullPointerException e) {
             errors.rejectValue("global", e.getMessage());
-            result.setMessage("fail");
+            result.setValid(false);
         }
 
-        result.setErrors(errors.getAllErrors());
-        if (result.getMessage().equals("fail")) {
-            return ResponseEntity.badRequest().body(result);
-        } else {
+        result.setErrors(errors.getFieldErrors());
+        if (result.isValid()) {
             return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
         }
 
     }
@@ -90,14 +90,14 @@ public class SmsPrefixController {
         AjaxResponseBody result = new AjaxResponseBody();
 
         if (errors.hasErrors()) {
-            result.setMessage("fail");
+            result.setValid(false);
         }
 
         try {
             if (groupDto.getGroupId() == 0) {
                 if (checkGroupDuplicate(currAccount, groupDto)) {
                     errors.rejectValue("groupName", "name duplicate");
-                    result.setMessage("fail");
+                    result.setValid(false);
                 } else {
                     groupDto.setAccountId(currAccount.getId());
                     prefixService.createNewGroup(groupDto);
@@ -106,16 +106,17 @@ public class SmsPrefixController {
 
                 prefixService.updateGroup(groupDto);
             }
-            result.setMessage("success");
+            result.setValid(true);
         } catch (NullPointerException e) {
-            result.setMessage("fail");
+            result.setValid(false);
         }
 
-        result.setErrors(errors.getAllErrors());
-        if (result.getMessage().equals("fail")) {
-            return ResponseEntity.badRequest().body(result);
-        } else {
+        result.setErrors(errors.getFieldErrors());
+
+        if (result.isValid()) {
             return ResponseEntity.ok(result);
+        } else {
+            return ResponseEntity.badRequest().body(result);
         }
 
     }
@@ -127,14 +128,14 @@ public class SmsPrefixController {
         AjaxResponseBody response = new AjaxResponseBody();
 
         if (errors.hasErrors()) {
-            response.setMessage("fail");
+            response.setValid(false);
         }
 
         try {
-            response.setMessage("success");
+            response.setValid(true);
             prefixService.deletePrefix(prefixDto.getPrefixId());
         } catch (Exception e) {
-            response.setMessage("fail");
+            response.setValid(false);
         }
 
         return ResponseEntity.ok(response);
@@ -147,14 +148,14 @@ public class SmsPrefixController {
         AjaxResponseBody response = new AjaxResponseBody();
 
         if (errors.hasErrors()) {
-            response.setMessage("fail");
+            response.setValid(false);
         }
 
         try {
-            response.setMessage("success");
+            response.setValid(true);
             prefixService.deleteGroup(groupDto.getGroupId());
         } catch (Exception e) {
-            response.setMessage("fail");
+            response.setValid(false);
         }
 
         return ResponseEntity.ok(response);
