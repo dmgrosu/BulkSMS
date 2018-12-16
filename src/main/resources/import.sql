@@ -9,3 +9,7 @@ insert into tb_sms_type values (3, 0, 'flash');
 insert into tb_sms_priority values (1, 0, 'normal');
 insert into tb_sms_priority values (2, 0, 'low');
 insert into tb_sms_priority values (3, 0, 'high');
+insert into tb_expiration_time values (1, 0, '10 minutes', '000000001000000R', 1);
+insert into tb_expiration_time values (2, 0, '30 minutes', '000000003000000R', 1);
+insert into tb_expiration_time values (3, 0, '1 hour', '000000010000000R', 1);
+insert into tb_expiration_time values (4, 0, '3 hours', '000000030000000R', 1);

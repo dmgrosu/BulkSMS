@@ -1,25 +1,26 @@
 package com.emotion.ecm.controller;
 
-import com.emotion.ecm.dao.SmsPreviewDao;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.service.*;
 import com.emotion.ecm.util.DateUtil;
+import com.emotion.ecm.validation.AjaxResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping(value = "/preview")
@@ -31,17 +32,22 @@ public class SmsPreviewController {
     private SmsPriorityService priorityService;
     private AccountDataService accountDataService;
     private GroupService groupService;
+    private SmppAddressService smppAddressService;
+    private ExpirationTimeService expirationTimeService;
 
     @Autowired
     public SmsPreviewController(SmsPreviewService smsPreviewService, AppUserService userService,
                                 SmsTypeService typeService, SmsPriorityService priorityService,
-                                GroupService groupService, AccountDataService accountDataService) {
+                                GroupService groupService, AccountDataService accountDataService,
+                                SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService) {
         this.smsPreviewService = smsPreviewService;
         this.userService = userService;
         this.typeService = typeService;
         this.priorityService = priorityService;
         this.groupService = groupService;
         this.accountDataService = accountDataService;
+        this.smppAddressService = smppAddressService;
+        this.expirationTimeService = expirationTimeService;
     }
 
     @GetMapping(value = "/list")
@@ -65,33 +71,79 @@ public class SmsPreviewController {
         previewDto.setSendDate(DateUtil.formatDate(LocalDateTime.now()));
         previewDto.setUserId(currUser.getId());
         previewDto.setTps(account.getTps());
+        previewDto.setUsername(currUser.getUsername());
 
-        model.addAttribute("preview", previewDto);
-        model.addAttribute("types", typeService.getAll());
-        model.addAttribute("priorities", priorityService.getAll());
-        model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
-        model.addAttribute("groupList", groupService.getAllByUser(currUser));
+        addAttributes(previewDto, model, currUser, account);
 
         return "preview/form";
     }
 
     @PostMapping(value = "/create")
-    public String savePreview(@ModelAttribute(name = "preview") PreviewDto previewDto,
+    public String savePreview(@Valid @ModelAttribute(name = "preview") PreviewDto previewDto,
                               BindingResult bindingResult, Model model) {
 
+        boolean isValid = true;
+
         if (bindingResult.hasErrors()) {
-            model.addAttribute("preview", previewDto);
-            model.addAttribute("errorMessage", "Form error!");
-            return "redirect:/create?error";
+            isValid = false;
         }
+
+        Optional<SmsPreview> optional = smsPreviewService.getByUserIdAndName(previewDto.getUserId(), previewDto.getName());
+        if (optional.isPresent()) {
+            bindingResult.rejectValue("name", "name.error", "Name is not unique");
+            isValid = false;
+        }
+
+        if (isValid) {
+            try {
+                smsPreviewService.createNewPreview(previewDto);
+            } catch (ParseException e) {
+                bindingResult.rejectValue("errors", e.getMessage());
+                isValid = false;
+            }
+        }
+
+        if (isValid) {
+            return "redirect: preview/list";
+        } else {
+            AppUser currUser = userService.getAuthenticatedUser();
+            Account account = currUser.getAccount();
+            model.addAttribute("preview", previewDto);
+            addAttributes(previewDto, model, currUser, account);
+            return "preview/form";
+        }
+    }
+
+    @PostMapping(value = "/delete")
+    @ResponseBody
+    public AjaxResponseBody deletePreview(@RequestBody PreviewDto previewDto) {
+        AjaxResponseBody result = new AjaxResponseBody();
+        List<FieldError> allErrors = new ArrayList<>();
+        result.setValid(true);
 
         try {
-            smsPreviewService.createNewPreview(previewDto);
-        } catch (ParseException e) {
-            bindingResult.rejectValue("errors", e.getMessage());
-            return "redirect:/create?error";
+            if (previewDto.getPreviewId() == 0) {
+                result.setValid(false);
+                allErrors.add(new FieldError("previewDto", "previewId", "preview id is 0"));
+            } else {
+                smsPreviewService.deleteById(previewDto.getPreviewId());
+            }
+        } catch (Exception e) {
+            result.setValid(false);
+            allErrors.add(new FieldError("previewDto", "previewId", e.getMessage()));
         }
 
-        return "preview/list";
+        result.setErrors(allErrors);
+        return result;
+    }
+
+    private void addAttributes(PreviewDto previewDto, Model model, AppUser currUser, Account account) {
+        model.addAttribute("preview", previewDto);
+        model.addAttribute("types", typeService.getAll());
+        model.addAttribute("priorities", priorityService.getAll());
+        model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
+        model.addAttribute("groupList", groupService.getAllByUser(currUser));
+        model.addAttribute("originators", smppAddressService.getAllByAccount(account));
+        model.addAttribute("availableExpTime", expirationTimeService.getAllByAccount(account));
     }
 }

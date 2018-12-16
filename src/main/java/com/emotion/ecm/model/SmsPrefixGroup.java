@@ -10,8 +10,8 @@ import javax.persistence.*;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "SMS_PREFIX_GROUP")
-@SQLDelete(sql = "UPDATE SMS_PREFIX_GROUP SET deleted=true WHERE id=?")
+@Table(name = "TB_SMS_PREFIX_GROUP")
+@SQLDelete(sql = "UPDATE TB_SMS_PREFIX_GROUP SET deleted=true WHERE id=?")
 @Where(clause = "deleted=false")
 public class SmsPrefixGroup {
 

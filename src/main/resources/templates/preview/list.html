@@ -21,17 +21,15 @@
     <table class="table table-condensed table-bordered">
         <thead>
         <tr>
-            <th>Account</th>
             <th>User</th>
             <th>Name</th>
-            <th>Create date</th>
             <th>Send date</th>
-            <th>SMS Type</th>
             <th>Priority</th>
             <th>TPS</th>
+            <th>Originator</th>
             <th>Recipients</th>
+            <th>Messages to send</th>
             <th>Status</th>
-            <th></th>
         </tr>
         </thead>
         <tbody>
@@ -39,25 +37,28 @@
             <td colspan="11" class="text-center">No previews available</td>
         </tr>
         <tr th:each="item: ${previews}">
-            <td th:text="${item.accountName}"> account</td>
             <td th:text="${item.username}"> user</td>
-            <td th:text="${item.name}"> name</td>
-            <td th:text="${item.createDate}"> create date</td>
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.name}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a th:href="@{/preview/edit}"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal('+${item.previewId}+',\''+${item.name}+'\')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+            </td>
             <td th:text="${item.sendDate}"> send date</td>
-            <td th:text="${item.type}"> type</td>
             <td th:text="${item.priority}"> priority</td>
             <td th:text="${item.tps}"> tps</td>
+            <td th:text="${item.smppAddress}"></td>
             <td th:text="${item.recipientsCount}"> recipients count</td>
+            <td th:text="${item.totalParts - item.totalSent}"> total to send</td>
             <td th:text="${item.status}"> status</td>
-            <td>
-                <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">...
-                    <span class="caret"></span></button>
-                <ul class="dropdown-menu">
-                    <li><a th:href="@{/preview/edit}">edit</a></li>
-                    <li><a href="#">stop</a></li>
-                    <li><a href="#">resume</a></li>
-                </ul>
-            </td>
+
         </tr>
         </tbody>
     </table>
@@ -65,74 +66,17 @@
 
 </div>
 
-<div id="previewModalForm" class="modal fade" role="dialog">
+<div id="deleteConfirm" class="modal fade" role="dialog">
     <div class="modal-dialog">
-
-        <!-- Modal content-->
         <div class="modal-content">
             <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">New preview:</h4>
+                <h4 id="modalHeader"></h4>
+                <input type="hidden" id="deletePreviewId">
             </div>
-            <div class="modal-body form-horizontal">
-
-                <input type="hidden" id="userId">
-                <input type="hidden" id="accountId">
-
-                <div class="form-group">
-                    <label for="sendDate" class="control-label col-sm-3">Send date:</label>
-                    <div class="col-sm-8">
-                        <input type="datetime-local" class="form-control" placeholder="Send date" id="sendDate"/>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="name" class="control-label col-sm-2">Name:</label>
-                    <div class="col-sm-10">
-                        <input type="text" class="form-control input-sm" id="name"/>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="type" class="control-label col-sm-2">Type:</label>
-                    <div class="col-sm-10">
-                        <select class="form-control" id="type">
-                            <option></option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="priority" class="control-label col-sm-2">Priority:</label>
-                    <div class="col-sm-10">
-                        <select class="form-control" id="priority">
-                            <option>
-                            </option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="tps" class="control-label col-sm-2">TPS:</label>
-                    <div class="col-sm-10">
-                        <input type="text" class="form-control input-sm" id="tps"/>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="text" class="control-label col-sm-2">Message text:</label>
-                    <div class="col-sm-10">
-                        <textarea class="form-control input-sm" rows="5" id="text"> </textarea>
-                    </div>
-                </div>
-
-            </div>
-
             <div class="modal-footer">
-                <a class="btn btn-info" data-dismiss="modal" onclick="savePreview()"> Save</a>
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
             </div>
-
         </div>
 
     </div>
@@ -142,12 +86,28 @@
 
 <script type="text/javascript">
 
-    function openModal() {
-        $('#previewModalForm').modal('show');
+    function showModal(previewId, previewName) {
+        $('#modalHeader').text('Delete preview \'' + previewName + '\'?');
+        $('#deletePreviewId').val(previewId);
+        $('#deleteConfirm').modal('show');
     }
 
-    function savePreview() {
+    function deleteElement() {
+        var data = {"previewId": $('#deletePreviewId').val()};
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/preview/delete',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
 
+            }
+        });
     }
 
 </script>

@@ -4,10 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import javax.validation.constraints.*;
 import java.util.Set;
 
 @Data
@@ -17,32 +14,47 @@ public class PreviewDto {
 
     private long previewId;
 
-    @NotNull
+    @NotEmpty
     private String name;
 
-    @NotNull
     private String createDate;
 
     @NotNull
     private String sendDate;
 
-    @NotNull
+    @NotEmpty
     @Size(max = 160)
     private String text;
 
     @Min(1)
     @Max(200)
     private short tps;
+
     private int recipientsCount;
-    private String previewStatus;
+    private int totalParts;
+    private int totalSent;
+    private String status;
+
+    @NotNull
     private int typeId;
     private String type;
+
+    @NotNull
     private int priorityId;
     private String priority;
+
+    @NotNull
+    private int smppAddressId;
+    private String smppAddress;
+
+    @NotNull
     private int userId;
     private String username;
-    private String status;
-    private String expirationTime;
+
+    @NotNull
+    private int expirationTimeId;
+    private String expirationTimeName;
+
     private boolean dlr;
     private int accountDataId;
     private String accountDataName;

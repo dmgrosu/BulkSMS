@@ -43,8 +43,11 @@ public class SmsPreview {
     @Column(name = "RECIPIENTS_COUNT")
     private int recipientsCount;
 
-    @Column(name = "EXPIRATION_TIME")
-    private String expirationTime;
+    @Column(name = "TOTAL_PARTS")
+    private int totalParts;
+
+    @Column(name = "SENT_PARTS")
+    private int sentParts;
 
     @Column(name = "PREVIEW_STATUS")
     @Enumerated(EnumType.ORDINAL)
@@ -68,7 +71,11 @@ public class SmsPreview {
     @JoinColumn(name = "SMS_TYPE_ID")
     private SmsType smsType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "EXPIRATION_TIME_ID")
+    private ExpirationTime expirationTime;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "SMPP_ADDRESS_ID")
     private SmppAddress smppAddress;
 
@@ -82,4 +89,9 @@ public class SmsPreview {
             inverseJoinColumns = @JoinColumn(name = "GROUP_ID", referencedColumnName = "ID"))
     private Set<Group> groups;
 
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "TB_PREVIEW_CONTACT",
+            joinColumns = @JoinColumn(name = "PREVIEW_ID", referencedColumnName = "ID"),
+            inverseJoinColumns = @JoinColumn(name = "CONTACT_ID", referencedColumnName = "ID"))
+    private Set<Contact> contacts;
 }
