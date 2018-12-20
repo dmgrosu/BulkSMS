@@ -22,6 +22,9 @@ public class SmsText {
     @Column(name = "PART")
     private short part;
 
+    @Column(name = "TOTAL_PARTS")
+    private short totalParts;
+
     @Column(name = "TEXT")
     private String text;
 

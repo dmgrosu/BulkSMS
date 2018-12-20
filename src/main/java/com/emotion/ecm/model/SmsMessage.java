@@ -24,11 +24,8 @@ public class SmsMessage {
     @Column(name = "DEST_ADDR")
     private String destAddress;
 
-    @Column(name = "SEND_DATE")
-    private LocalDateTime sendDate;
-
     @Column(name = "SUBM_DATE")
-    private LocalDateTime submissionDate;
+    private LocalDateTime submitDate;
 
     @Column(name = "MSG_STAT")
     @Enumerated(EnumType.ORDINAL)

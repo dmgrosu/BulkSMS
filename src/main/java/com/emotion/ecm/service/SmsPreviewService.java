@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class SmsPreviewService {
@@ -109,5 +110,20 @@ public class SmsPreviewService {
 
     public void deleteById(long previewId) {
         smsPreviewDao.deleteById(previewId);
+    }
+
+    public List<SmsPreview> getPreviewsForBroadcast(List<AppUser> users) {
+
+        List<Integer> userIds = users.stream()
+                .map(AppUser::getId).collect(Collectors.toList());
+        List<PreviewStatus> statuses = new ArrayList<>();
+        statuses.add(PreviewStatus.APPROVED);
+        statuses.add(PreviewStatus.SENDING);
+
+        return smsPreviewDao.findPreviewsForBroadcast(userIds, LocalDateTime.now(), statuses);
+    }
+
+    public SmsPreview save(SmsPreview preview) {
+        return smsPreviewDao.save(preview);
     }
 }
