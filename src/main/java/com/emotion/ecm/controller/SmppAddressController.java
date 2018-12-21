@@ -53,9 +53,8 @@ public class SmppAddressController {
     @ResponseBody
     public AjaxResponseBody saveSmppAddress(@Valid @RequestBody SmppAddressDto smppAddressDto, BindingResult bindingResult) {
 
-        AjaxResponseBody result = new AjaxResponseBody();
         List<FieldError> allErrors = new ArrayList<>();
-        result.setValid(true);
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
         if (bindingResult.hasErrors()) {
             result.setValid(false);
@@ -88,19 +87,15 @@ public class SmppAddressController {
             allErrors.add(new FieldError("smppAddressDto", "address", e.getMessage()));
         }
 
-        result.setErrors(allErrors);
-
         return result;
-
     }
 
     @PostMapping(value = "/delete")
     @ResponseBody
     public AjaxResponseBody deleteSmppAddress(@RequestBody SmppAddressDto smppAddressDto, BindingResult bindingResult) {
 
-        AjaxResponseBody result = new AjaxResponseBody();
         List<FieldError> allErrors = new ArrayList<>();
-        result.setValid(true);
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
         if (bindingResult.hasErrors()) {
             result.setValid(false);
@@ -118,8 +113,6 @@ public class SmppAddressController {
             result.setValid(false);
             allErrors.add(new FieldError("smppAddressDto", "address", e.getMessage()));
         }
-
-        result.setErrors(allErrors);
 
         return result;
     }

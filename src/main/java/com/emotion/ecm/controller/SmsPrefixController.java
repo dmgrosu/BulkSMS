@@ -15,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,119 +47,113 @@ public class SmsPrefixController {
 
     @PostMapping(value = "/savePrefix")
     @ResponseBody
-    public ResponseEntity<?> savePrefix(@Valid @RequestBody PrefixDto prefixDto, Errors errors) {
+    public AjaxResponseBody savePrefix(@Valid @RequestBody PrefixDto prefixDto, BindingResult bindingResult) {
 
-        AjaxResponseBody result = new AjaxResponseBody();
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
-        if (errors.hasErrors()) {
+        if (bindingResult.hasErrors()) {
             result.setValid(false);
+            allErrors.addAll(bindingResult.getFieldErrors());
         }
 
         try {
             if (prefixDto.getPrefixId() == 0) {
                 if (checkPrefixDuplicate(prefixDto)) {
-                    errors.rejectValue("prefix", "duplicate found");
                     result.setValid(false);
+                    allErrors.add(new FieldError("prefixDto", "prefixId", "prefixId is 0"));
                 } else {
                     prefixService.createNewPrefix(prefixDto);
                 }
             } else {
                 prefixService.updatePrefix(prefixDto);
             }
-            result.setValid(true);
         } catch (NullPointerException e) {
-            errors.rejectValue("global", e.getMessage());
             result.setValid(false);
+            allErrors.add(new FieldError("prefixDto", "prefix", e.getMessage()));
         }
 
-        result.setErrors(errors.getFieldErrors());
-        if (result.isValid()) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
-        }
-
+        return result;
     }
 
     @PostMapping(value = "/saveGroup")
     @ResponseBody
-    public ResponseEntity<?> saveGroup(@Valid @RequestBody PrefixGroupDto groupDto, Errors errors) {
+    public AjaxResponseBody saveGroup(@Valid @RequestBody PrefixGroupDto groupDto, BindingResult bindingResult) {
 
         AppUser currUser = userService.getAuthenticatedUser();
         Account currAccount = currUser.getAccount();
 
-        AjaxResponseBody result = new AjaxResponseBody();
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
-        if (errors.hasErrors()) {
+        if (bindingResult.hasErrors()) {
             result.setValid(false);
+            allErrors.addAll(bindingResult.getFieldErrors());
         }
 
         try {
             if (groupDto.getGroupId() == 0) {
                 if (checkGroupDuplicate(currAccount, groupDto)) {
-                    errors.rejectValue("groupName", "name duplicate");
                     result.setValid(false);
+                    allErrors.add(new FieldError("groupDto", "groupId", "groupId is 0"));
                 } else {
                     groupDto.setAccountId(currAccount.getId());
                     prefixService.createNewGroup(groupDto);
                 }
             } else {
-
                 prefixService.updateGroup(groupDto);
             }
             result.setValid(true);
         } catch (NullPointerException e) {
             result.setValid(false);
+            allErrors.add(new FieldError("groupDto", "groupName", e.getMessage()));
         }
 
-        result.setErrors(errors.getFieldErrors());
-
-        if (result.isValid()) {
-            return ResponseEntity.ok(result);
-        } else {
-            return ResponseEntity.badRequest().body(result);
-        }
-
+        return result;
     }
 
     @PostMapping(value = "/deletePrefix")
     @ResponseBody
-    public ResponseEntity<?> deletePrefix(@RequestBody PrefixDto prefixDto, Errors errors) {
+    public AjaxResponseBody deletePrefix(@Valid @RequestBody PrefixDto prefixDto, BindingResult bindingResult) {
 
-        AjaxResponseBody response = new AjaxResponseBody();
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
-        if (errors.hasErrors()) {
-            response.setValid(false);
+        if (bindingResult.hasErrors()) {
+            result.setValid(false);
+            allErrors.addAll(bindingResult.getFieldErrors());
         }
 
         try {
-            response.setValid(true);
             prefixService.deletePrefix(prefixDto.getPrefixId());
         } catch (Exception e) {
-            response.setValid(false);
+            result.setValid(false);
+            allErrors.add(new FieldError("prefixDto", "prefix", e.getMessage()));
         }
 
-        return ResponseEntity.ok(response);
+        return result;
     }
 
     @PostMapping(value = "/deleteGroup")
     @ResponseBody
-    public ResponseEntity<?> deleteGroup(@RequestBody PrefixGroupDto groupDto, Errors errors) {
+    public AjaxResponseBody deleteGroup(@RequestBody PrefixGroupDto groupDto, BindingResult bindingResult) {
 
-        AjaxResponseBody response = new AjaxResponseBody();
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
-        if (errors.hasErrors()) {
-            response.setValid(false);
+        if (bindingResult.hasErrors()) {
+            result.setValid(false);
+            allErrors.addAll(bindingResult.getFieldErrors());
         }
 
         try {
-            response.setValid(true);
             prefixService.deleteGroup(groupDto.getGroupId());
         } catch (Exception e) {
-            response.setValid(false);
+            result.setValid(false);
+            allErrors.add(new FieldError("prefixDto", "prefix", e.getMessage()));
         }
 
-        return ResponseEntity.ok(response);
+        return result;
     }
 
     private boolean checkPrefixDuplicate(PrefixDto prefixDto) {

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Home</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div th:replace="fragments/header"></div>
+
+<div class="container-fluid col-md-12">
+
+    <a class="btn btn-info btn-sm" onclick="showModal('add',0,'')">Add new SMSC</a>
+
+    <table class="table table-condensed table-hover table-bordered">
+        <thead>
+        <tr class="text-center">
+            <th>System id</th>
+            <th>IP address</th>
+            <th>Port</th>
+            <th>TPS</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${smscAccounts.isEmpty()}">
+            <td colspan="4" class="text-center"> No smsc available</td>
+        </tr>
+        <tr th:each="item:${smscAccounts}">
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.systemId}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showModal(\'edit\','+${item.smscAccountId}+')'"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal(\'delete\','+${item.smscAccountId}+')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+            </td>
+            <td>
+                <span th:text="${item.ipAddress}"></span>
+            </td>
+            <td>
+                <span th:text="${item.port}"></span>
+            </td>
+            <td>
+                <span th:text="${item.tps}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="modalAdd" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 id="modalAddHeader"></h4>
+            </div>
+            <div class="form-horizontal modal-body">
+                <input type="hidden" id="smscAccountId">
+                <input type="hidden" id="accountId">
+                <div class="form-group">
+                    <label for="systemId" class="control-label col-sm-3">System id:</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control input-sm" id="systemId">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password" class="control-label col-sm-3">Password:</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control input-sm" id="password">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ipAddress" class="control-label col-sm-3">IP address:</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control input-sm" id="ipAddress">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="port" class="control-label col-sm-3">Port:</label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control input-sm" id="port">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="tps" class="control-label col-sm-3">TPS:</label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control input-sm" id="tps">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="maxConnections" class="control-label col-sm-5">Max number of connections:</label>
+                    <div class="col-sm-7">
+                        <input type="number" class="form-control input-sm" id="maxConnections">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <div class="checkbox">
+                            <label><input type="checkbox" id="asynchronous"> is asynchronous</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="saveElement()">Save</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4> Delete SMSC?</h4>
+                <input type="hidden" id="deleteSmscAccountId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function showModal(type, elementId, elementValue) {
+        var modalWindow = $('#modalAdd');
+        var smscAccountIdEl = $('#smscAccountId');
+        var systemIdEl = $('#systemId');
+        var passwordEl = $('#password');
+        var ipAddressEl = $('#ipAddress');
+        var portEl = $('#port');
+        var tpsEl = $('#tps');
+        var maxConnectionsEl = $('#maxConnections');
+        var deleteSmscAccountId = $('#deleteSmscAccountId');
+        var headerTextEl = $('#modalAddHeader');
+        smscAccountIdEl.val('');
+        systemIdEl.val('');
+        passwordEl.val('');
+        ipAddressEl.val('');
+        portEl.val(0);
+        tpsEl.val(0);
+        maxConnectionsEl.val(0);
+        if (type === 'add') {
+            headerTextEl.text('Add new SMSC:');
+        } else if (type === 'edit') {
+            headerTextEl.text('Edit SMSC:');
+            addressIdEl.val(elementId);
+            systemIdEl.val(elementValue);
+        } else if (type === 'delete') {
+            modalWindow = $('#deleteConfirm');
+            deleteSmscAccountId.val(elementId);
+        }
+        modalWindow.modal('show');
+    }
+
+    function saveElement() {
+        var smscAccountId = $('#smscAccountId').val();
+        var systemId = $('#systemId').val();
+        var password = $('#password').val();
+        var ipAddress = $('#ipAddress').val();
+        var port = $('#port').val();
+        var tps = $('#tps').val();
+        var maxConnections = $('#maxConnections').val();
+        var async = $('#asynchronous').prop('checked');
+        var data, url;
+        url = "/smscAccount/save";
+        data = {
+            "smscAccountId": smscAccountId,
+            "systemId": systemId,
+            "password": password,
+            "ipAddress": ipAddress,
+            "port": port,
+            "tps": tps,
+            "maxConnections": maxConnections,
+            "asynchronous": async,
+        };
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: url,
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#modalAdd').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+    function deleteElement() {
+        var data = {"smscAccountId": $('#deleteSmscAccountId').val()};
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/smscAccount/delete',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+</script>
+
+</body>

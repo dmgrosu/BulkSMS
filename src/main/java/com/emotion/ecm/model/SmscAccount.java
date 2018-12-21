@@ -7,7 +7,6 @@ import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
 
-
 @Data
 @NoArgsConstructor
 @Entity
@@ -20,6 +19,12 @@ public class SmscAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    @Column(name = "SYSTEM_ID")
+    private String systemId;
+
+    @Column(name = "PASSWORD")
+    private String password;
+
     @Column(name = "IP_ADDRESS")
     private String ipAddress;
 
@@ -29,10 +34,16 @@ public class SmscAccount {
     @Column(name = "TPS")
     private short tps;
 
+    @Column(name = "ASYNCHRONOUS")
+    private boolean asynchronous;
+
+    @Column(name = "MAX_CONNECTIONS")
+    private byte maxConnections;
+
     @Column(name = "DELETED")
     private boolean deleted;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "ACCOUNT_ID")
     private Account account;
 
