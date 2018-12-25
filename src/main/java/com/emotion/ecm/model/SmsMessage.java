@@ -27,12 +27,18 @@ public class SmsMessage {
     @Column(name = "SUBM_DATE")
     private LocalDateTime submitDate;
 
-    @Column(name = "MSG_STAT")
+    @Column(name = "SUBM_RESP_DATE")
+    private LocalDateTime submitRespDate;
+
+    @Column(name = "DLR_DATE")
+    private LocalDateTime dlrDate;
+
+    @Column(name = "MSG_STATUS")
     @Enumerated(EnumType.ORDINAL)
     private MessageStatus messageStatus;
 
-    @Column(name = "SEQ_NUMB")
-    private String sequenceNumber;
+    @Column(name = "MESSAGE_ID")
+    private String messageId;
 
     @Column(name = "DELETED")
     private boolean deleted;
@@ -44,5 +50,13 @@ public class SmsMessage {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMS_TEXT_ID")
     private SmsText smsText;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SMS_PREFIX_ID")
+    private SmsPrefix smsPrefix;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SMSC_ACCOUNT_ID")
+    private SmscAccount smscAccount;
 
 }

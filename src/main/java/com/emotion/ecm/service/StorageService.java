@@ -1,7 +1,10 @@
 package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.SmsPrefixDao;
+import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
+import com.emotion.ecm.model.SmsPrefix;
+import com.emotion.ecm.model.SmsPreview;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class StorageService {
@@ -46,9 +46,12 @@ public class StorageService {
 
         Set<String> readLines = new HashSet<>();
         Set<String> invalidLines = new HashSet<>();
+
+        List<SmsPrefix> allPrefixesByAccount = smsPrefixService.getAllPrefixesByAccount(user.getAccount());
+
         String currLine;
         while ((currLine = reader.readLine()) != null) {
-            if (!smsPrefixService.isMsisdnValidForAccount(user.getAccount(), currLine)) {
+            if (!isMsisdnValidForAccount(allPrefixesByAccount, currLine)) {
                 invalidLines.add(currLine);
                 continue;
             }
@@ -69,6 +72,12 @@ public class StorageService {
         LOGGER.info(String.format("%s was stored", path));
 
         return result;
+    }
+
+    private boolean isMsisdnValidForAccount(List<SmsPrefix> prefixes, String msisdn) {
+
+        return prefixes.stream()
+                .anyMatch(prefix -> msisdn.startsWith(prefix.getPrefix()));
     }
 
     public Path load(String fileName) {

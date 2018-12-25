@@ -26,7 +26,7 @@ public class EsmeService {
         this.userService = userService;
     }
 
-    @Scheduled(fixedRate = 5000)
+    //@Scheduled(fixedRate = 5000)
     public void sendMessages() {
 
         List<AppUser> users = new ArrayList<>();

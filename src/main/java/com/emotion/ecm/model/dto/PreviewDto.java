@@ -14,7 +14,7 @@ public class PreviewDto {
 
     private long previewId;
 
-    @NotEmpty
+    @NotNull
     private String name;
 
     private String createDate;
@@ -22,8 +22,7 @@ public class PreviewDto {
     @NotNull
     private String sendDate;
 
-    @NotEmpty
-    @Size(max = 160)
+    @NotNull
     private String text;
 
     @Min(1)
@@ -34,6 +33,7 @@ public class PreviewDto {
     private int totalParts;
     private int totalSent;
     private String status;
+    private String phoneNumbers;
 
     @NotNull
     private int typeId;

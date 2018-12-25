@@ -59,6 +59,9 @@ public class SmsPreview {
     @Column(name = "DELETED")
     private boolean deleted;
 
+    @Column(name = "NUMBERS")
+    private String phoneNumbers;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "USER_ID")
     private AppUser user;
@@ -79,7 +82,7 @@ public class SmsPreview {
     @JoinColumn(name = "SMPP_ADDRESS_ID")
     private SmppAddress smppAddress;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "ACCOUNT_DATA_ID")
     private AccountData accountData;
 
