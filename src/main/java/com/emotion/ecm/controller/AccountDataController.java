@@ -89,6 +89,6 @@ public class AccountDataController {
             model.addAttribute("error", true);
         }
 
-        return "accountData/list?" + resultString;
+        return "redirect:/accountData/list?" + resultString;
     }
 }

@@ -3,6 +3,7 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.AccountDataDao;
 import com.emotion.ecm.model.AccountData;
 import com.emotion.ecm.model.AppUser;
+import com.emotion.ecm.model.ExpirationTime;
 import com.emotion.ecm.model.dto.AccountDataDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,4 +70,7 @@ public class AccountDataService {
         return result;
     }
 
+    public AccountData getById(int accountDataId) {
+        return accountDataDao.getOne(accountDataId);
+    }
 }

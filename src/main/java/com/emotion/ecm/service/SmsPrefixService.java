@@ -4,7 +4,6 @@ import com.emotion.ecm.dao.AccountDao;
 import com.emotion.ecm.dao.SmsPrefixDao;
 import com.emotion.ecm.dao.SmsPrefixGroupDao;
 import com.emotion.ecm.model.Account;
-import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPrefix;
 import com.emotion.ecm.model.SmsPrefixGroup;
 import com.emotion.ecm.model.dto.PrefixDto;
@@ -13,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -56,14 +56,23 @@ public class SmsPrefixService {
         if (account == null || msisdn == null) {
             return false;
         }
-        for (SmsPrefixGroup smsPrefixGroup : getAllGroupsByAccount(account)) {
-            for (SmsPrefix smsPrefix : getAllByPrefixGroup(smsPrefixGroup)) {
-                if (msisdn.startsWith(smsPrefix.getPrefix())) {
-                    return true;
-                }
+        for (SmsPrefix smsPrefix : getAllPrefixesByAccount(account)) {
+            if (msisdn.startsWith(smsPrefix.getPrefix())) {
+                return true;
             }
         }
         return false;
+    }
+
+    public List<SmsPrefix> getAllPrefixesByAccount(Account account) {
+
+        List<SmsPrefix> result = new ArrayList<>();
+
+        for (SmsPrefixGroup group : getAllGroupsByAccount(account)) {
+            result.addAll(getAllByPrefixGroup(group));
+        }
+
+        return result;
     }
 
     public List<PrefixGroupDto> getGroupDtoList(final Account account) {

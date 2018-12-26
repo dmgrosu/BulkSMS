@@ -1,5 +1,6 @@
 package com.emotion.ecm.controller;
 
+import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
@@ -8,7 +9,6 @@ import com.emotion.ecm.service.*;
 import com.emotion.ecm.util.DateUtil;
 import com.emotion.ecm.validation.AjaxResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -31,20 +31,20 @@ public class SmsPreviewController {
     private SmsTypeService typeService;
     private SmsPriorityService priorityService;
     private AccountDataService accountDataService;
-    private GroupService groupService;
+    private ContactService contactService;
     private SmppAddressService smppAddressService;
     private ExpirationTimeService expirationTimeService;
 
     @Autowired
     public SmsPreviewController(SmsPreviewService smsPreviewService, AppUserService userService,
                                 SmsTypeService typeService, SmsPriorityService priorityService,
-                                GroupService groupService, AccountDataService accountDataService,
+                                ContactService contactService, AccountDataService accountDataService,
                                 SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService) {
         this.smsPreviewService = smsPreviewService;
         this.userService = userService;
         this.typeService = typeService;
         this.priorityService = priorityService;
-        this.groupService = groupService;
+        this.contactService = contactService;
         this.accountDataService = accountDataService;
         this.smppAddressService = smppAddressService;
         this.expirationTimeService = expirationTimeService;
@@ -104,13 +104,13 @@ public class SmsPreviewController {
         }
 
         if (isValid) {
-            return "redirect: preview/list";
+            return "redirect:/preview/list";
         } else {
-            AppUser currUser = userService.getAuthenticatedUser();
-            Account account = currUser.getAccount();
-            model.addAttribute("preview", previewDto);
-            addAttributes(previewDto, model, currUser, account);
-            return "preview/form";
+//            AppUser currUser = userService.getAuthenticatedUser();
+//            Account account = currUser.getAccount();
+//            model.addAttribute("preview", previewDto);
+//            addAttributes(previewDto, model, currUser, account);
+            return "redirect:/preview/form";
         }
     }
 
@@ -136,12 +136,34 @@ public class SmsPreviewController {
         return result;
     }
 
+    @PostMapping(value = "/changeStatus")
+    @ResponseBody
+    public AjaxResponseBody changeStatus(@RequestBody PreviewDto previewDto) {
+
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
+
+        try {
+            if (previewDto.getPreviewId() == 0) {
+                result.setValid(false);
+                allErrors.add(new FieldError("previewDto", "previewId", "preview id is 0"));
+            } else {
+                smsPreviewService.changeStatus(previewDto);
+            }
+        } catch (Exception e) {
+            result.setValid(false);
+            allErrors.add(new FieldError("previewDto", "previewId", e.getMessage()));
+        }
+
+        return result;
+    }
+
     private void addAttributes(PreviewDto previewDto, Model model, AppUser currUser, Account account) {
         model.addAttribute("preview", previewDto);
         model.addAttribute("types", typeService.getAll());
         model.addAttribute("priorities", priorityService.getAll());
         model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
-        model.addAttribute("groupList", groupService.getAllByUser(currUser));
+        model.addAttribute("groupList", contactService.getAllGroupsByUser(currUser));
         model.addAttribute("originators", smppAddressService.getAllByAccount(account));
         model.addAttribute("availableExpTime", expirationTimeService.getAllByAccount(account));
     }

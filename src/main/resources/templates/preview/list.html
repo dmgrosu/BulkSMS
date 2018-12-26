@@ -46,7 +46,7 @@
                         <li><a th:href="@{/preview/edit}"> edit</a>
                         </li>
                         <li><a href="#"
-                               th:onclick="'showModal('+${item.previewId}+',\''+${item.name}+'\')'"> delete</a>
+                               th:onclick="'showDeleteModal('+${item.previewId}+',\''+${item.name}+'\')'"> delete</a>
                         </li>
                     </ul>
                 </span>
@@ -57,12 +57,24 @@
             <td th:text="${item.smppAddress}"></td>
             <td th:text="${item.recipientsCount}"> recipients count</td>
             <td th:text="${item.totalParts - item.totalSent}"> total to send</td>
-            <td th:text="${item.status}"> status</td>
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.status}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#" th:if="${item.status}=='CREATED'"
+                               th:onclick="'showChangeStatusModal('+${item.previewId}+',\'SAVED\')'"> save</a></li>
+                        <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:onclick="'showChangeStatusModal('+${item.previewId}+',\'APPROVED\')'"> approve</a></li>
+                        <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:onclick="'showChangeStatusModal('+${item.previewId}+',\'REJECTED\')'"> reject</a></li>
+                    </ul>
+                </span>
+            </td>
 
         </tr>
         </tbody>
     </table>
-
 
 </div>
 
@@ -82,11 +94,28 @@
     </div>
 </div>
 
+<div id="changeStatusConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modal2Header"></h4>
+                <input type="hidden" id="previewId">
+                <input type="hidden" id="newStatus">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="changeStatus()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 </body>
 
 <script type="text/javascript">
 
-    function showModal(previewId, previewName) {
+    function showDeleteModal(previewId, previewName) {
         $('#modalHeader').text('Delete preview \'' + previewName + '\'?');
         $('#deletePreviewId').val(previewId);
         $('#deleteConfirm').modal('show');
@@ -102,6 +131,34 @@
             dataType: "JSON",
             success: function () {
                 $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+    function showChangeStatusModal(previewId, newStatus) {
+        $('#modal2Header').text('Change preview status to \'' + newStatus + '\'?');
+        $('#previewId').val(previewId);
+        $('#newStatus').val(newStatus);
+        $('#changeStatusConfirm').modal('show');
+    }
+
+    function changeStatus() {
+        var data = {
+            "previewId": $('#previewId').val(),
+            "status": $('#newStatus').val()
+        };
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/preview/changeStatus',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#changeStatusConfirm').modal('hide');
                 window.location.reload();
             },
             error: function (errors) {
