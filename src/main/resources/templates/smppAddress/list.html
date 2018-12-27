@@ -37,10 +37,10 @@
                        th:text="${item.address}"></a>
                     <ul class="dropdown-menu">
                         <li><a href="#"
-                               th:onclick="'showModal(\'edit\','+${item.smppAddressId}+',\''+${item.address}+'\')'"> edit</a>
+                               th:onclick="'showModal(\'edit\','+${item.smppAddressId}+')'"> edit</a>
                         </li>
                         <li><a href="#"
-                               th:onclick="'showModal(\'delete\','+${item.smppAddressId}+',\''+${item.address}+'\')'"> delete</a>
+                               th:onclick="'showModal(\'delete\','+${item.smppAddressId}+')'"> delete</a>
                         </li>
                     </ul>
                 </span>

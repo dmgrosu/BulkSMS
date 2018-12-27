@@ -3,12 +3,14 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.*;
 import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.exception.PreviewException;
+import com.emotion.ecm.model.AccountData;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.Group;
 import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.util.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,30 +30,22 @@ public class SmsPreviewService {
     private SmppAddressDao smppAddressDao;
 
     private ExpirationTimeService expirationTimeService;
-    private SmsMessageService smsMessageService;
-    private SmsTextService smsTextService;
     private ContactService contactService;
     private AccountDataService accountDataService;
-    private SmsPrefixService smsPrefixService;
 
     @Autowired
     public SmsPreviewService(SmsPreviewDao smsPreviewDao, AppUserDao userDao,
                              SmsTypeDao typeDao, SmsPriorityDao priorityDao,
                              SmppAddressDao smppAddressDao, ExpirationTimeService expirationTimeService,
-                             SmsMessageService smsMessageService, SmsTextService smsTextService,
-                             ContactService contactService, AccountDataService accountDataService,
-                             SmsPrefixService smsPrefixService) {
+                             ContactService contactService, AccountDataService accountDataService) {
         this.smsPreviewDao = smsPreviewDao;
         this.userDao = userDao;
         this.typeDao = typeDao;
         this.priorityDao = priorityDao;
         this.smppAddressDao = smppAddressDao;
         this.expirationTimeService = expirationTimeService;
-        this.smsMessageService = smsMessageService;
-        this.smsTextService = smsTextService;
         this.contactService = contactService;
         this.accountDataService = accountDataService;
-        this.smsPrefixService = smsPrefixService;
     }
 
     public List<SmsPreview> getAllByUser(AppUser user) {
@@ -85,8 +79,14 @@ public class SmsPreviewService {
         result.setSmppAddress(preview.getSmppAddress().getAddress());
         result.setExpirationTimeId(preview.getExpirationTime().getId());
         result.setExpirationTimeName(preview.getExpirationTime().getName());
-        result.setAccountDataId(preview.getAccountData().getId());
-        result.setAccountDataName(preview.getAccountData().getName());
+        result.setRecipientsCount(preview.getRecipientsCount());
+        result.setTotalParts(preview.getTotalParts());
+        result.setTotalSent(preview.getSentParts());
+        AccountData ad = preview.getAccountData();
+        if (ad != null) {
+            result.setAccountDataId(ad.getId());
+            result.setAccountDataName(ad.getName());
+        }
         return result;
     }
 
@@ -121,6 +121,9 @@ public class SmsPreviewService {
         if (!StringUtils.isEmpty(dto.getCreateDate())) {
             result.setCreateDate(DateUtil.parseDate(dto.getCreateDate()));
         }
+        result.setRecipientsCount(dto.getRecipientsCount());
+        result.setTotalParts(dto.getTotalParts());
+        result.setSentParts(dto.getTotalSent());
 
         return result;
     }
@@ -139,7 +142,6 @@ public class SmsPreviewService {
         return result;
     }
 
-    @Transactional
     public void deleteById(long previewId) {
         smsPreviewDao.deleteById(previewId);
     }
@@ -152,20 +154,20 @@ public class SmsPreviewService {
         statuses.add(PreviewStatus.APPROVED);
         statuses.add(PreviewStatus.SENDING);
 
-        return smsPreviewDao.findPreviewsForBroadcast(userIds, LocalDateTime.now(), statuses);
+//        return smsPreviewDao.findPreviewsForBroadcast(userIds, LocalDateTime.now(), statuses);
+
+        return smsPreviewDao.findAllByUserIdInAndDeletedAndPreviewStatusInAndSendDateBefore(userIds,
+                false, statuses, LocalDateTime.now());
     }
 
-    @Transactional
     public SmsPreview save(SmsPreview preview) {
         return smsPreviewDao.save(preview);
     }
 
-    @Transactional
     public SmsPreview saveAndFlush(SmsPreview preview) {
         return smsPreviewDao.saveAndFlush(preview);
     }
 
-    @Transactional
     public void changeStatus(PreviewDto previewDto) throws PreviewException {
 
         long previewId = previewDto.getPreviewId();
@@ -174,23 +176,11 @@ public class SmsPreviewService {
         if (optional.isPresent()) {
             SmsPreview preview = optional.get();
             preview.setPreviewStatus(PreviewStatus.valueOf(previewDto.getStatus()));
-            preview = smsPreviewDao.saveAndFlush(preview);
-            if (preview.getPreviewStatus() == PreviewStatus.APPROVED) {
-                startGenerationProcess(preview);
-            }
+            smsPreviewDao.saveAndFlush(preview);
         } else {
             throw new PreviewException(String.format("preview with id %s not found", previewId));
         }
 
     }
 
-    private void startGenerationProcess(SmsPreview preview) {
-
-        if (preview != null) {
-            SmsGeneration smsGeneration = new SmsGeneration(this, smsMessageService,
-                    preview, smsTextService, accountDataService, contactService, smsPrefixService);
-            smsGeneration.startGenerationProcess();
-        }
-
-    }
 }

@@ -1,30 +1,220 @@
 package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.SmsMessageDao;
-import com.emotion.ecm.model.SmsMessage;
-import com.emotion.ecm.model.SmsPreview;
+import com.emotion.ecm.enums.MessageStatus;
+import com.emotion.ecm.enums.PreviewStatus;
+import com.emotion.ecm.model.*;
+import com.emotion.ecm.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 public class SmsMessageService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmsMessageService.class);
+
     private SmsMessageDao smsMessageDao;
+    private SmsPrefixService smsPrefixService;
+    private SmsPreviewService smsPreviewService;
+    private SmsTextService smsTextService;
+    private ContactService contactService;
+    private AccountDataService accountDataService;
+
+    private final ConcurrentHashMap<Long, List<String>> destinationsMap = new ConcurrentHashMap<>();
 
     @Autowired
-    public SmsMessageService(SmsMessageDao smsMessageDao) {
+    public SmsMessageService(SmsMessageDao smsMessageDao, SmsPrefixService smsPrefixService,
+                             SmsPreviewService smsPreviewService, SmsTextService smsTextService,
+                             ContactService contactService, AccountDataService accountDataService) {
         this.smsMessageDao = smsMessageDao;
+        this.smsPrefixService = smsPrefixService;
+        this.smsPreviewService = smsPreviewService;
+        this.smsTextService = smsTextService;
+        this.contactService = contactService;
+        this.accountDataService = accountDataService;
     }
 
-    public List<SmsMessage> getAllToBeSend(List<SmsPreview> previews) {
-        return null;
+    public List<SmsMessage> getAllToBeSendByPreview(List<SmsPreview> previews) {
+
+        List<SmsMessage> result = new ArrayList<>();
+
+        previews.stream()
+                .map(preview -> getMessagesToSendByPreview(preview, preview.getTps()))
+                .forEach(result::addAll);
+
+        return result;
     }
 
-    @Transactional
     public List<SmsMessage> batchSave(List<SmsMessage> messages) {
         return smsMessageDao.saveAll(messages);
     }
+
+    public Set<String> getSentDestinationsByPreviewId(long previewId) {
+        return smsMessageDao.getSentDestinationsByPreviewId(previewId);
+    }
+
+    private List<SmsMessage> getMessagesToSendByPreview(SmsPreview preview, int maxSize) {
+
+        List<SmsMessage> result = new ArrayList<>();
+
+        List<String> numbersList = getDestinations(preview);
+
+        if (numbersList != null && !numbersList.isEmpty()) {
+
+            List<SmsPrefix> prefixes = smsPrefixService.getAllPrefixesByAccount(preview.getUser().getAccount());
+
+            List<SmsText> smsParts = createSmsParts(preview.getText());
+
+            SmsMessage message;
+            for (String destAddr : numbersList) {
+                SmsPrefix prefix = getPrefixForMsisdn(prefixes, destAddr);
+                boolean stop = false;
+                for (int i = 0; i < smsParts.size(); i++) {
+                    SmsText smsPart = smsParts.get(i);
+                    if (result.size() >= maxSize && i == smsParts.size() - 1) {
+                        stop = true;
+                        break;
+                    }
+                    message = new SmsMessage();
+                    message.setDestAddress(destAddr);
+                    message.setMessageStatus(MessageStatus.READY);
+                    message.setPreview(preview);
+                    message.setSmsText(smsPart);
+                    message.setSmsPrefix(prefix);
+                    result.add(message);
+                }
+                if (stop) {
+                    break;
+                }
+            }
+
+        }
+
+        if (result.size() > 0) {
+            preview.setPreviewStatus(PreviewStatus.APPROVED);
+            preview.setTotalParts(result.size());
+            smsPreviewService.saveAndFlush(preview);
+        }
+
+        return result;
+    }
+
+    private List<String> getDestinations(SmsPreview preview) {
+
+        List<String> result = destinationsMap.get(preview.getId());
+
+        final Set<String> sentDestinations = new HashSet<>();
+
+        if (result == null) {
+            if (preview.getSentParts() > 0) {
+                sentDestinations.addAll(getSentDestinationsByPreviewId(preview.getId()));
+            }
+            result = new ArrayList<>();
+        } else {
+            if (preview.isTextEdited()) {
+                sentDestinations.addAll(getSentDestinationsByPreviewId(preview.getId()));
+                destinationsMap.remove(preview.getId());
+                result = new ArrayList<>();
+            } else {
+                return result;
+            }
+        }
+
+        AccountData accountData = preview.getAccountData();
+        Set<Group> groups = preview.getGroups();
+        String phoneNumbers = preview.getPhoneNumbers();
+        if (accountData != null) {
+            result = getNumbersFromFile(accountData, preview).stream()
+                    .filter(s -> !sentDestinations.contains(s))
+                    .collect(Collectors.toList());
+        } else if (groups != null && !groups.isEmpty()) {
+            result = getNumbersFromGroup(groups).stream()
+                    .filter(s -> !sentDestinations.contains(s))
+                    .collect(Collectors.toList());
+        } else if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
+            result = getNumbersFromString(phoneNumbers).stream()
+                    .filter(s -> !sentDestinations.contains(s))
+                    .collect(Collectors.toList());
+        }
+
+        destinationsMap.put(preview.getId(), result);
+
+        return result;
+    }
+
+    private List<SmsText> createSmsParts(String initialText) {
+
+        List<SmsText> result = new ArrayList<>();
+
+        List<String> smsParts = StringUtil.createSmsParts(initialText, false);
+        short partNumber = 1;
+        for (String smsPart : smsParts) {
+            result.add(smsTextService.getByTextAndParts(smsPart, partNumber, (short) smsParts.size()));
+            partNumber++;
+        }
+
+        return result;
+    }
+
+    private SmsPrefix getPrefixForMsisdn(List<SmsPrefix> prefixes, String destAddr) {
+        for (SmsPrefix prefix : prefixes) {
+            if (destAddr.startsWith(prefix.getPrefix())) {
+                return prefix;
+            }
+        }
+        return null;
+    }
+
+    private List<String> getNumbersFromString(String phoneNumbers) {
+
+        List<String> result = new ArrayList<>();
+
+        if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
+            String[] arr = phoneNumbers.split(",");
+            result = Arrays.stream(arr)
+                    .collect(Collectors.toList());
+        }
+
+        return result;
+    }
+
+    private List<String> getNumbersFromGroup(Set<Group> groups) {
+
+        return contactService.getAllContactsByGroups(groups).stream()
+                .map(Contact::getMobilePhone)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getNumbersFromFile(AccountData accountData, SmsPreview preview) {
+
+        List<String> result = new ArrayList<>();
+
+        try {
+            Path directory = accountDataService.getAccountPath(preview.getUser());
+            Path fullPath = directory.resolve(accountData.getFileName());
+            BufferedReader reader = Files.newBufferedReader(fullPath);
+            String currLine;
+            while ((currLine = reader.readLine()) != null) {
+                result.add(currLine);
+            }
+            reader.close();
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage());
+            return result;
+        }
+
+        return result;
+    }
+
 }

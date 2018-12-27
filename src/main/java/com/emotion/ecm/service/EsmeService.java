@@ -26,7 +26,7 @@ public class EsmeService {
         this.userService = userService;
     }
 
-    //@Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 5000)
     public void sendMessages() {
 
         List<AppUser> users = new ArrayList<>();
@@ -34,7 +34,7 @@ public class EsmeService {
 
         List<SmsPreview> previews = smsPreviewService.getPreviewsForBroadcast(users);
         if (previews.isEmpty()) {
-            List<SmsMessage> messages = smsMessageService.getAllToBeSend(previews);
+            List<SmsMessage> messages = smsMessageService.getAllToBeSendByPreview(previews);
 
         }
     }

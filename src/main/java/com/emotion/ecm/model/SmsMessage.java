@@ -3,8 +3,10 @@ package com.emotion.ecm.model;
 import com.emotion.ecm.enums.MessageStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import org.springframework.data.domain.Persistable;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -18,7 +20,8 @@ import java.time.LocalDateTime;
 public class SmsMessage {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(generator = "incrementGenerator")
+    @GenericGenerator(name = "incrementGenerator", strategy = "increment")
     private long id;
 
     @Column(name = "DEST_ADDR")

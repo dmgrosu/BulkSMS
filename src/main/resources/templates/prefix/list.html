@@ -37,10 +37,10 @@
                        th:text="${group.groupName}"></a>
                     <ul class="dropdown-menu">
                         <li><a href="#"
-                               th:onclick="'showModal(\'editGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> edit</a>
+                               th:onclick="'showModal(\'editGroup\','+${group.groupId}+')'"> edit</a>
                         </li>
                         <li><a href="#"
-                               th:onclick="'showModal(\'deleteGroup\','+${group.groupId}+',\''+${group.groupName}+'\')'"> delete</a>
+                               th:onclick="'showModal(\'deleteGroup\','+${group.groupId}+')'"> delete</a>
                         </li>
                     </ul>
 
@@ -52,16 +52,16 @@
                        th:text="${item.prefix}+','"></a>
                     <ul class="dropdown-menu">
                         <li><a href="#"
-                               th:onclick="'showModal(\'editPrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> edit</a>
+                               th:onclick="'showModal(\'editPrefix\','+${item.id}+')'"> edit</a>
                         </li>
                         <li><a href="#"
-                               th:onclick="'showModal(\'deletePrefix\','+${item.id}+',\''+${item.prefix}+'\')'"> delete</a>
+                               th:onclick="'showModal(\'deletePrefix\','+${item.id}+')'"> delete</a>
                         </li>
                     </ul>
                 </span>
             </td>
             <td>
-                <a href="#" th:onclick="'showModal(\'addPrefix\','+${group.groupId}+',\''+${group.groupName}+'\')'">
+                <a href="#" th:onclick="'showModal(\'addPrefix\','+${group.groupId}+')'">
                     add new prefix
                 </a>
             </td>

@@ -62,6 +62,9 @@ public class SmsPreview {
     @Column(name = "NUMBERS")
     private String phoneNumbers;
 
+    @Column(name = "TEXT_EDITED")
+    private boolean textEdited;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "USER_ID")
     private AppUser user;
