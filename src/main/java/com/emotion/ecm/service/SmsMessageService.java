@@ -4,12 +4,15 @@ import com.emotion.ecm.dao.SmsMessageDao;
 import com.emotion.ecm.enums.MessageStatus;
 import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.model.*;
+import com.emotion.ecm.model.dto.SubmitSmDto;
 import com.emotion.ecm.util.StringUtil;
+import org.jsmpp.bean.ESMClass;
+import org.jsmpp.bean.NumberingPlanIndicator;
+import org.jsmpp.bean.TypeOfNumber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -45,13 +48,38 @@ public class SmsMessageService {
         this.accountDataService = accountDataService;
     }
 
-    public List<SmsMessage> getAllToBeSendByPreview(List<SmsPreview> previews) {
+    public List<SubmitSmDto> getAllToBeSendByPreview(List<SmsPreview> previews, SmscAccount smscAccount) {
 
-        List<SmsMessage> result = new ArrayList<>();
+        List<SubmitSmDto> result = new ArrayList<>();
 
-        previews.stream()
-                .map(preview -> getMessagesToSendByPreview(preview, preview.getTps()))
-                .forEach(result::addAll);
+        for (SmsPreview preview : previews) {
+            List<SmsMessage> messages = getMessagesToSendByPreview(preview, preview.getTps());
+            for (SmsMessage message : messages) {
+                result.add(convertMessageToSubmitSmDto(preview, message, smscAccount));
+            }
+
+        }
+
+        return result;
+    }
+
+    private SubmitSmDto convertMessageToSubmitSmDto(SmsPreview preview, SmsMessage message, SmscAccount smscAccount) {
+
+        SmppAddress smppAddress = preview.getSmppAddress();
+
+        SubmitSmDto result = new SubmitSmDto();
+
+        result.setServiceType("");
+        result.setDestinationTon(TypeOfNumber.ALPHANUMERIC);
+        result.setDestinationNpi(NumberingPlanIndicator.UNKNOWN);
+        result.setDestinationNumber(message.getDestAddress());
+        result.setSourceTon(smppAddress.getTon());
+        result.setSourceNpi(smppAddress.getNpi());
+        result.setSourceNumber(smppAddress.getAddress());
+        result.setEsmClass(new ESMClass());
+        result.setProtocolId((byte)0);
+        result.setPriorityFlag((byte)0);
+
 
         return result;
     }
@@ -76,8 +104,13 @@ public class SmsMessageService {
 
             List<SmsText> smsParts = createSmsParts(preview.getText());
 
+            Iterator<String> iterator = numbersList.iterator();
+
             SmsMessage message;
-            for (String destAddr : numbersList) {
+            while(iterator.hasNext()) {
+
+                String destAddr = iterator.next();
+
                 SmsPrefix prefix = getPrefixForMsisdn(prefixes, destAddr);
                 boolean stop = false;
                 for (int i = 0; i < smsParts.size(); i++) {
@@ -97,6 +130,8 @@ public class SmsMessageService {
                 if (stop) {
                     break;
                 }
+
+                iterator.remove();
             }
 
         }

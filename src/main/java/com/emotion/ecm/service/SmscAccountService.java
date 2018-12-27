@@ -1,6 +1,5 @@
 package com.emotion.ecm.service;
 
-import com.emotion.ecm.dao.AccountDao;
 import com.emotion.ecm.dao.SmscAccountDao;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.SmscAccount;
@@ -22,14 +21,13 @@ public class SmscAccountService {
         this.smscAccountDao = smscAccountDao;
     }
 
-    public List<SmscAccount> getAllByAccount(Account account) {
-        return smscAccountDao.findAllByAccount(account);
+    public List<SmscAccount> getAll() {
+        return smscAccountDao.findAll();
     }
 
-    public SmscAccount convertDtoToSmscAccount(SmscAccountDto dto, Account account) {
+    public SmscAccount convertDtoToSmscAccount(SmscAccountDto dto) {
 
         SmscAccount result = new SmscAccount();
-        result.setAccount(account);
         result.setSystemId(dto.getSystemId());
         result.setPassword(dto.getPassword());
         result.setIpAddress(dto.getIpAddress());
@@ -45,7 +43,6 @@ public class SmscAccountService {
 
         SmscAccountDto result = new SmscAccountDto();
         result.setSmscAccountId(smscAccount.getId());
-        result.setAccountId(smscAccount.getAccount().getId());
         result.setSystemId(smscAccount.getSystemId());
         result.setPassword(smscAccount.getPassword());
         result.setIpAddress(smscAccount.getIpAddress());
@@ -59,7 +56,7 @@ public class SmscAccountService {
 
     public List<SmscAccountDto> getDtoListByAccount(Account account) {
 
-        return getAllByAccount(account).stream()
+        return getAll().stream()
                 .map(this::convertSmscAccountToDto).collect(Collectors.toList());
     }
 
@@ -67,17 +64,16 @@ public class SmscAccountService {
         if (smscAccountDto.getSmscAccountId() != 0) {
             return false;
         } else {
-            int accountId = smscAccountDto.getAccountId();
             String ipAddress = smscAccountDto.getIpAddress();
             int port = smscAccountDto.getPort();
-            return smscAccountDao.findByAccountIdAndIpAddressAndPort(accountId, ipAddress, port).isPresent();
+            return smscAccountDao.findByIpAddressAndPort(ipAddress, port).isPresent();
         }
     }
 
-    public SmscAccount save(SmscAccountDto smscAccountDto, Account account) {
-        Optional<SmscAccount> optional = smscAccountDao.findById(smscAccountDto.getAccountId());
+    public SmscAccount save(SmscAccountDto smscAccountDto) {
+        Optional<SmscAccount> optional = smscAccountDao.findById(smscAccountDto.getSmscAccountId());
         SmscAccount result = optional.orElseGet(SmscAccount::new);
-        SmscAccount converted = convertDtoToSmscAccount(smscAccountDto, account);
+        SmscAccount converted = convertDtoToSmscAccount(smscAccountDto);
         if (!result.equals(converted)) {
             result = smscAccountDao.save(converted);
         }

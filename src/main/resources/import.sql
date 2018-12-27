@@ -18,4 +18,4 @@ insert into tb_expiration_time values (4, 0, '3 hours', '000000030000000R', 1);
 insert into tb_sms_prefix_group values (1, 0, 'UMS', 1);
 insert into tb_sms_prefix values (1, 0, '998', 1);
 insert into tb_smpp_address values (1, 'PREZIDENTUZ', 0, 0, 0, 1);
-insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 200, 1);
+insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 200);

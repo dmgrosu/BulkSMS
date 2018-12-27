@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import org.jsmpp.bean.NumberingPlanIndicator;
+import org.jsmpp.bean.TypeOfNumber;
 
 import javax.persistence.*;
 
@@ -23,10 +25,12 @@ public class SmppAddress {
     private String address;
 
     @Column(name = "TON")
-    private byte ton;
+    @Enumerated(EnumType.ORDINAL)
+    private TypeOfNumber ton;
 
     @Column(name = "NPI")
-    private byte npi;
+    @Enumerated(EnumType.STRING)
+    private NumberingPlanIndicator npi;
 
     @Column(name = "DELETED")
     private boolean deleted;

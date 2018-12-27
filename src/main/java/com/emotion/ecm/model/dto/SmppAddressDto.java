@@ -3,6 +3,8 @@ package com.emotion.ecm.model.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jsmpp.bean.NumberingPlanIndicator;
+import org.jsmpp.bean.TypeOfNumber;
 
 import javax.validation.constraints.NotNull;
 
@@ -16,8 +18,8 @@ public class SmppAddressDto {
     @NotNull
     private String address;
 
-    private byte ton;
-    private byte npi;
+    private TypeOfNumber ton;
+    private NumberingPlanIndicator npi;
     private int accountId;
 
 }

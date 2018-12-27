@@ -38,5 +38,4 @@ public class SmscAccountDto {
 
     private boolean asynchronous;
 
-    private int accountId;
 }

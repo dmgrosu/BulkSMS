@@ -1,6 +1,5 @@
 package com.emotion.ecm.controller;
 
-import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import com.emotion.ecm.service.AppUserService;
@@ -11,7 +10,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -53,17 +51,13 @@ public class SmscAccountController {
             allErrors.addAll(bindingResult.getFieldErrors());
         }
 
-        AppUser currUser = userService.getAuthenticatedUser();
-        Account currAccount = currUser.getAccount();
-        smscAccountDto.setAccountId(currAccount.getId());
-
         if (smscAccountService.checkDuplicate(smscAccountDto)) {
             result.setValid(false);
             allErrors.add(new FieldError("smscAccountDto", "ipAddress", "duplicate SMSC found"));
         }
 
         if (result.isValid()) {
-            smscAccountService.save(smscAccountDto, currAccount);
+            smscAccountService.save(smscAccountDto);
         }
 
         return result;

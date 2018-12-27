@@ -43,8 +43,4 @@ public class SmscAccount {
     @Column(name = "DELETED")
     private boolean deleted;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "ACCOUNT_ID")
-    private Account account;
-
 }
