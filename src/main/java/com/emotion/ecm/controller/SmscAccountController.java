@@ -1,11 +1,10 @@
 package com.emotion.ecm.controller;
 
-import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.dto.SmscAccountDto;
-import com.emotion.ecm.service.AppUserService;
 import com.emotion.ecm.service.SmscAccountService;
 import com.emotion.ecm.validation.AjaxResponseBody;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -21,20 +20,16 @@ import java.util.List;
 public class SmscAccountController {
 
     private SmscAccountService smscAccountService;
-    private AppUserService userService;
 
     @Autowired
-    public SmscAccountController(SmscAccountService smscAccountService, AppUserService userService) {
+    public SmscAccountController(SmscAccountService smscAccountService) {
         this.smscAccountService = smscAccountService;
-        this.userService = userService;
     }
 
     @GetMapping(value = "/list")
     public String getList(Model model) {
 
-        AppUser currUser = userService.getAuthenticatedUser();
-
-        model.addAttribute("smscAccounts", smscAccountService.getDtoListByAccount(currUser.getAccount()));
+        model.addAttribute("smscAccounts", smscAccountService.getAllDto());
 
         return "smscAccount/list";
     }
@@ -80,5 +75,11 @@ public class SmscAccountController {
         }
 
         return result;
+    }
+
+    @GetMapping(value = "/getAllNames")
+    @ResponseBody
+    public List<SmscAccountDto> getAllNames() {
+        return smscAccountService.getAllNames();
     }
 }

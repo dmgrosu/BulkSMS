@@ -26,9 +26,9 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
                                               @Param("date") LocalDateTime currDate,
                                               @Param("statuses") List<PreviewStatus> statuses);
 
-    List<SmsPreview> findAllByUserIdInAndDeletedAndPreviewStatusInAndSendDateBefore(List<Integer> usersIds,
-                                                                                 boolean deleted,
-                                                                                 List<PreviewStatus> statuses,
-                                                                                 LocalDateTime currDate);
+    List<SmsPreview> findAllByUserAccountIdInAndDeletedAndPreviewStatusInAndSendDateBefore(List<Integer> usersIds,
+                                                                                           boolean deleted,
+                                                                                           List<PreviewStatus> statuses,
+                                                                                           LocalDateTime currDate);
 
 }

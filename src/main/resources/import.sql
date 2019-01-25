@@ -1,4 +1,5 @@
-insert into tb_account values (1, 0,'emotion', 200);
+insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 200);
+insert into tb_account values (1, 0,'emotion', 200, 1);
 insert into tb_user values (1,'dmitri.grosu@gmail.com','Dmitri','Grosu','$2a$10$l2jG0pR9uwYEyTkycQmaWefKL2vxgmJU/IDobyZrNF17hCQjNQ1uS','sysadmin',1);
 insert into tb_role values (1,'ADMIN');
 insert into tb_role values (2,'USER');
@@ -17,5 +18,5 @@ insert into tb_expiration_time values (3, 0, '1 hour', '000000010000000R', 1);
 insert into tb_expiration_time values (4, 0, '3 hours', '000000030000000R', 1);
 insert into tb_sms_prefix_group values (1, 0, 'UMS', 1);
 insert into tb_sms_prefix values (1, 0, '998', 1);
-insert into tb_smpp_address values (1, 'PREZIDENTUZ', 0, 0, 0, 1);
-insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 200);
+insert into tb_smpp_address values (1, 'PREZIDENTUZ', 0, 'UNKNOWN', 0, 1);
+

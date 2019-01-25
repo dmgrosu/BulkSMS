@@ -3,10 +3,7 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.*;
 import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.exception.PreviewException;
-import com.emotion.ecm.model.AccountData;
-import com.emotion.ecm.model.AppUser;
-import com.emotion.ecm.model.Group;
-import com.emotion.ecm.model.SmsPreview;
+import com.emotion.ecm.model.*;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.util.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,17 +143,15 @@ public class SmsPreviewService {
         smsPreviewDao.deleteById(previewId);
     }
 
-    public List<SmsPreview> getPreviewsForBroadcast(List<AppUser> users) {
+    public List<SmsPreview> getPreviewsForBroadcast(List<Account> accounts) {
 
-        List<Integer> userIds = users.stream()
-                .map(AppUser::getId).collect(Collectors.toList());
+        List<Integer> accountIds = accounts.stream()
+                .map(Account::getId).collect(Collectors.toList());
         List<PreviewStatus> statuses = new ArrayList<>();
         statuses.add(PreviewStatus.APPROVED);
         statuses.add(PreviewStatus.SENDING);
 
-//        return smsPreviewDao.findPreviewsForBroadcast(userIds, LocalDateTime.now(), statuses);
-
-        return smsPreviewDao.findAllByUserIdInAndDeletedAndPreviewStatusInAndSendDateBefore(userIds,
+        return smsPreviewDao.findAllByUserAccountIdInAndDeletedAndPreviewStatusInAndSendDateBefore(accountIds,
                 false, statuses, LocalDateTime.now());
     }
 

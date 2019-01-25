@@ -6,9 +6,26 @@
             <a class="navbar-brand" th:href="@{/home}">ECM</a>
         </div>
         <ul class="nav navbar-nav">
-            <li class="active"><a th:href="@{/home}">Home</a></li>
-            <li sec:authorize="hasRole('ADMIN')"><a href="@{/admin}">Admin</a></li>
-            <li><a th:href="@{/preview/list}">Preview</a></li>
+
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Main menu
+                    <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li><a th:href="@{/preview/list}">SMS Previews</a></li>
+                    <li><a th:href="@{/accountData/list}">SMS Files</a></li>
+                    <li><a th:href="@{/prefix/list}">Prefixes</a></li>
+                    <li><a th:href="@{/smppAddress/list}">Originators</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown" sec:authorize="hasRole('ADMIN')">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Admin menu
+                    <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li><a th:href="@{/account/list}">Accounts</a></li>
+                    <li><a th:href="@{/smscAccount/list}">SMSC</a></li>
+                </ul>
+            </li>
 
         </ul>
         <ul class="nav navbar-nav navbar-right">

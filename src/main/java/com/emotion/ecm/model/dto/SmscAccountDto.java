@@ -2,7 +2,6 @@ package com.emotion.ecm.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
@@ -10,7 +9,6 @@ import javax.validation.constraints.NotEmpty;
 
 @Data
 @AllArgsConstructor
-@NoArgsConstructor
 public class SmscAccountDto {
 
     private int smscAccountId;
@@ -37,5 +35,14 @@ public class SmscAccountDto {
     private byte maxConnections;
 
     private boolean asynchronous;
+
+    public SmscAccountDto() {
+    }
+
+    public SmscAccountDto(int smscAccountId, String systemId, String ipAddress) {
+        this.smscAccountId = smscAccountId;
+        this.systemId = systemId;
+        this.ipAddress = ipAddress;
+    }
 
 }

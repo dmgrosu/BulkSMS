@@ -6,9 +6,7 @@ import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.model.*;
 import com.emotion.ecm.model.dto.SubmitSmDto;
 import com.emotion.ecm.util.StringUtil;
-import org.jsmpp.bean.ESMClass;
-import org.jsmpp.bean.NumberingPlanIndicator;
-import org.jsmpp.bean.TypeOfNumber;
+import org.jsmpp.bean.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +61,14 @@ public class SmsMessageService {
         return result;
     }
 
+    public List<SmsMessage> batchSave(List<SmsMessage> messages) {
+        return smsMessageDao.saveAll(messages);
+    }
+
+    public Set<String> getSentDestinationsByPreviewId(long previewId) {
+        return smsMessageDao.getSentDestinationsByPreviewId(previewId);
+    }
+
     private SubmitSmDto convertMessageToSubmitSmDto(SmsPreview preview, SmsMessage message, SmscAccount smscAccount) {
 
         SmppAddress smppAddress = preview.getSmppAddress();
@@ -77,20 +83,23 @@ public class SmsMessageService {
         result.setSourceNpi(smppAddress.getNpi());
         result.setSourceNumber(smppAddress.getAddress());
         result.setEsmClass(new ESMClass());
-        result.setProtocolId((byte)0);
-        result.setPriorityFlag((byte)0);
-
+        result.setProtocolId((byte) 0);
+        result.setPriorityFlag((byte) 0);
+        result.setScheduleDeliveryTime("");
+        result.setValidityPeriod(preview.getExpirationTime().getValue());
+        SMSCDeliveryReceipt deliveryReceipt = SMSCDeliveryReceipt.DEFAULT;
+        if (preview.isDlr()) {
+            deliveryReceipt = SMSCDeliveryReceipt.SUCCESS_FAILURE;
+        }
+        result.setRegisteredDelivery(new RegisteredDelivery(deliveryReceipt));
+        result.setReplaceIfPresentFlag((byte) 0);
+        result.setDataCoding(new GeneralDataCoding());
+        result.setSmDefaultMsgId((byte) 0);
+        result.setShortMessage(message.getSmsText().getText().getBytes());
 
         return result;
     }
 
-    public List<SmsMessage> batchSave(List<SmsMessage> messages) {
-        return smsMessageDao.saveAll(messages);
-    }
-
-    public Set<String> getSentDestinationsByPreviewId(long previewId) {
-        return smsMessageDao.getSentDestinationsByPreviewId(previewId);
-    }
 
     private List<SmsMessage> getMessagesToSendByPreview(SmsPreview preview, int maxSize) {
 
@@ -107,7 +116,7 @@ public class SmsMessageService {
             Iterator<String> iterator = numbersList.iterator();
 
             SmsMessage message;
-            while(iterator.hasNext()) {
+            while (iterator.hasNext()) {
 
                 String destAddr = iterator.next();
 

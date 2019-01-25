@@ -21,43 +21,12 @@ public class SmscAccountService {
         this.smscAccountDao = smscAccountDao;
     }
 
-    public List<SmscAccount> getAll() {
-        return smscAccountDao.findAll();
+    public List<SmscAccountDto> getAllDto() {
+        return smscAccountDao.findAllDto();
     }
 
-    public SmscAccount convertDtoToSmscAccount(SmscAccountDto dto) {
-
-        SmscAccount result = new SmscAccount();
-        result.setSystemId(dto.getSystemId());
-        result.setPassword(dto.getPassword());
-        result.setIpAddress(dto.getIpAddress());
-        result.setPort(dto.getPort());
-        result.setTps(dto.getTps());
-        result.setAsynchronous(dto.isAsynchronous());
-        result.setMaxConnections(dto.getMaxConnections());
-
-        return result;
-    }
-
-    public SmscAccountDto convertSmscAccountToDto(SmscAccount smscAccount) {
-
-        SmscAccountDto result = new SmscAccountDto();
-        result.setSmscAccountId(smscAccount.getId());
-        result.setSystemId(smscAccount.getSystemId());
-        result.setPassword(smscAccount.getPassword());
-        result.setIpAddress(smscAccount.getIpAddress());
-        result.setPort(smscAccount.getPort());
-        result.setTps(smscAccount.getTps());
-        result.setAsynchronous(smscAccount.isAsynchronous());
-        result.setMaxConnections(smscAccount.getMaxConnections());
-
-        return result;
-    }
-
-    public List<SmscAccountDto> getDtoListByAccount(Account account) {
-
-        return getAll().stream()
-                .map(this::convertSmscAccountToDto).collect(Collectors.toList());
+    public List<SmscAccountDto> getAllNames() {
+        return smscAccountDao.findAllNames();
     }
 
     public boolean checkDuplicate(SmscAccountDto smscAccountDto) {
@@ -80,8 +49,30 @@ public class SmscAccountService {
         return result;
     }
 
+    public SmscAccount save(SmscAccount smscAccount) {
+        return smscAccountDao.save(smscAccount);
+    }
+
     public void deleteById(int smscAccountId) {
         smscAccountDao.deleteById(smscAccountId);
+    }
+
+    public SmscAccount getById(int smscAccountId) {
+        return smscAccountDao.findById(smscAccountId).orElse(null);
+    }
+
+    private SmscAccount convertDtoToSmscAccount(SmscAccountDto dto) {
+
+        SmscAccount result = new SmscAccount();
+        result.setSystemId(dto.getSystemId());
+        result.setPassword(dto.getPassword());
+        result.setIpAddress(dto.getIpAddress());
+        result.setPort(dto.getPort());
+        result.setTps(dto.getTps());
+        result.setAsynchronous(dto.isAsynchronous());
+        result.setMaxConnections(dto.getMaxConnections());
+
+        return result;
     }
 
 }

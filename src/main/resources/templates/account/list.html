@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Admin</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div th:replace="fragments/header"></div>
+
+<div class="container-fluid col-md-12">
+
+    <a class="btn btn-info btn-sm" onclick="showModal('add',0)">Add new account</a>
+
+    <table class="table table-condensed table-hover table-bordered">
+        <thead>
+        <tr class="text-center">
+            <th>Account name</th>
+            <th>max TPS</th>
+            <th>SMSC name</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${accounts.isEmpty()}">
+            <td colspan="3">No accounts available</td>
+        </tr>
+        <tr th:each="account:${accounts}">
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${account.name}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showModal(\'edit\','+${account.accountId}+')'"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal(\'delete\','+${account.accountId}+')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+            </td>
+            <td>
+                <span th:text="${account.tps}"></span>
+            </td>
+            <td>
+                <span th:text="${account.smscAccountSystemId}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+<div id="modalAdd" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 id="modalAddHeader"></h4>
+            </div>
+            <div class="form-horizontal modal-body">
+                <input type="hidden" id="accountId">
+                <div class="form-group">
+                    <label for="name" class="control-label col-sm-3">Name:</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control input-sm" id="name">
+                        <p class="error-message" id="nameMessageError">Validation error</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="tps" class="control-label col-sm-3">TPS:</label>
+                    <div class="col-sm-9">
+                        <input type="number" class="form-control input-sm" id="tps">
+                        <p class="error-message" id="tpsMessageError">Validation error</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="smsAccountSelect" class="control-label col-sm-3">SMS Center:</label>
+                    <div class="col-sm-9">
+                        <select id="smsAccountSelect" class="form-control input-sm">
+
+                        </select>
+                        <p class="error-message" id="smscAccountIdMessageError">Validation error</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="saveElement()">Save</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4> Delete Account?</h4>
+                <input type="hidden" id="deleteAccountId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+
+<script type="text/javascript">
+
+    function showModal(type, elementId) {
+        var modalWindow = $('#modalAdd');
+        var accountIdEl = $('#accountId');
+        var nameEl = $('#name');
+        var tpsEl = $('#tps');
+        var deleteAccountId = $('#deleteAccountId');
+        var headerTextEl = $('#modalAddHeader');
+        accountIdEl.val('');
+        nameEl.val('');
+        tpsEl.val(0);
+        $('#smsAccountSelect').find('option').remove();
+        if (type === 'add') {
+            headerTextEl.text('Add new Account:');
+            appendAllSmsc();
+        } else if (type === 'edit') {
+            headerTextEl.text('Edit Account:');
+            accountIdEl.val(elementId);
+            appendAllSmsc();
+            renderById(elementId);
+        } else if (type === 'delete') {
+            modalWindow = $('#deleteConfirm');
+            deleteAccountId.val(elementId);
+        }
+        modalWindow.modal('show');
+    }
+
+    function renderById(accountId) {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/account/getById",
+            data: {"accountId": accountId},
+            success: function (result) {
+                $('#accountId').val(result.id);
+                $('#name').val(result.name);
+                $('#tps').val(result.tps);
+                $('#smsAccountSelect').val(result.smscAccount.id);
+            }
+        })
+    }
+
+    function appendAllSmsc() {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/smscAccount/getAllNames",
+            success: function (result) {
+                $.each(result, function (i, item) {
+                    $('#smsAccountSelect').append($('<option>', {
+                        value: item.smscAccountId,
+                        text : item.systemId+' ('+item.ipAddress+')'
+                    }))
+                });
+            }
+        })
+    }
+
+    function saveElement() {
+        let url = "/account/save";
+        let data = {
+            "accountId": $('#accountId').val(),
+            "name": $('#name').val(),
+            "tps": $('#tps').val(),
+            "smscAccountId": $('#smsAccountSelect').val()
+        };
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: url,
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function (result) {
+                if (result.valid) {
+                    $('#modalAdd').modal('hide');
+                    window.location.reload();
+                } else {
+                    $.each(result.errors, function (i, error) {
+
+                    })
+                }
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+    function deleteElement() {
+        let data = {"accountId": $('#deleteAccountId').val()};
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/account/delete',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+</script>
+
+
