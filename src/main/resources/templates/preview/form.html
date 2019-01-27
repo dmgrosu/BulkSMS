@@ -91,7 +91,7 @@
             <div class="col-sm-10">
                 <select th:field="*{smppAddressId}" class="form-control" id="smppAddress">
                     <option th:each="item : ${originators}"
-                            th:value="${item.id}"
+                            th:value="${item.smppAddressId}"
                             th:text="${item.address}">
                     </option>
                     <p class="error-message"

@@ -70,23 +70,22 @@
                     <label for="name" class="control-label col-sm-3">Name:</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control input-sm" id="name">
-                        <p class="error-message" id="nameMessageError">Validation error</p>
+                        <p class="error-message" id="nameMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="tps" class="control-label col-sm-3">TPS:</label>
                     <div class="col-sm-9">
                         <input type="number" class="form-control input-sm" id="tps">
-                        <p class="error-message" id="tpsMessageError">Validation error</p>
+                        <p class="error-message" id="tpsMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="smsAccountSelect" class="control-label col-sm-3">SMS Center:</label>
                     <div class="col-sm-9">
                         <select id="smsAccountSelect" class="form-control input-sm">
-
                         </select>
-                        <p class="error-message" id="smscAccountIdMessageError">Validation error</p>
+                        <p class="error-message" id="smscAccountIdMessageError"></p>
                     </div>
                 </div>
             </div>
@@ -169,7 +168,7 @@
                 $.each(result, function (i, item) {
                     $('#smsAccountSelect').append($('<option>', {
                         value: item.smscAccountId,
-                        text : item.systemId+' ('+item.ipAddress+')'
+                        text: item.systemId + ' (' + item.ipAddress + ')'
                     }))
                 });
             }
@@ -177,8 +176,9 @@
     }
 
     function saveElement() {
-        let url = "/account/save";
-        let data = {
+        clearErrors();
+        var url = "/account/save";
+        var data = {
             "accountId": $('#accountId').val(),
             "name": $('#name').val(),
             "tps": $('#tps').val(),
@@ -196,18 +196,26 @@
                     window.location.reload();
                 } else {
                     $.each(result.errors, function (i, error) {
-
+                        var element = $('#' + error.field + 'MessageError');
+                        element.text(error.defaultMessage);
+                        element.parent().addClass('has-error');
                     })
                 }
             },
             error: function (errors) {
-
+                alert(errors);
             }
         });
     }
 
+    function clearErrors() {
+        var sel = $("p[id*='MessageError']");
+        sel.text('');
+        sel.parent().removeClass('has-error');
+    }
+
     function deleteElement() {
-        let data = {"accountId": $('#deleteAccountId').val()};
+        var data = {"accountId": $('#deleteAccountId').val()};
         $.ajax({
             type: 'POST',
             contentType: "application/json",

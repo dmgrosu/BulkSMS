@@ -1,6 +1,7 @@
-insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 200);
+insert into tb_smsc_account values (1, 1, 0, '192.168.1.91', 1, 'unifun', 34655, 'unifun', 100);
+insert into tb_smsc_account values (2, 1, 0, '127.0.0.1', 1, 'un_i3fun', 33555, 'unifun', 200);
 insert into tb_account values (1, 0,'emotion', 200, 1);
-insert into tb_user values (1,'dmitri.grosu@gmail.com','Dmitri','Grosu','$2a$10$l2jG0pR9uwYEyTkycQmaWefKL2vxgmJU/IDobyZrNF17hCQjNQ1uS','sysadmin',1);
+insert into tb_user values (1,'dmitri.grosu@gmail.com','Dmitri','Grosu','$2a$10$l2jG0pR9uwYEyTkycQmaWefKL2vxgmJU/IDobyZrNF17hCQjNQ1uS','ACTIVE','sysadmin',1);
 insert into tb_role values (1,'ADMIN');
 insert into tb_role values (2,'USER');
 insert into tb_role values (3,'MODERATOR');

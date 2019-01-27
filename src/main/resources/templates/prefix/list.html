@@ -80,10 +80,9 @@
             <div class="modal-body">
                 <div class="form-group">
                     <input type="hidden" id="saveType">
-                    <input type="hidden" id="groupId">
+                    <input type="hidden" id="saveId">
                     <input type="hidden" id="prefixGroupId">
-                    <input type="hidden" id="prefixId">
-                    <input id="inputModalName" required="required" class="form-control">
+                     <input id="inputModalName" required="required" class="form-control">
                 </div>
             </div>
             <div class="modal-footer">
@@ -101,8 +100,7 @@
             <div class="modal-header">
                 <h4 id="modalDeleteHeader"></h4>
                 <input type="hidden" id="deleteType">
-                <input type="hidden" id="deletePrefixId">
-                <input type="hidden" id="deleteGroupId">
+                <input type="hidden" id="deleteId">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
@@ -115,20 +113,18 @@
 
 <script type="text/javascript">
 
-    function showModal(type, elementId, elementValue) {
+    function showModal(type, elementId) {
         var modalWindow = $('#modalAdd');
-        var prefixIdEl = $('#prefixId');
-        var groupIdEl = $('#groupId');
+        var saveIdEl = $('#saveId');
+        var saveTypeEl = $('#saveType');
         var prefixGroupIdEl = $('#prefixGroupId');
         var inputNameEl = $('#inputModalName');
         var modalHeader = $('#modalAddHeader');
         var modalDeleteHeader = $('#modalDeleteHeader');
-        var deletePrefixIdEl = $('#deletePrefixId');
-        var deleteGroupIdEl = $('#deleteGroupId');
-        var saveTypeEl = $('#saveType');
+        var deleteIdEl = $('#deleteId');
         var deleteTypeEl = $('#deleteType');
-        prefixIdEl.val(0);
-        groupIdEl.val(0);
+        saveIdEl.val(0);
+        deleteIdEl.val(0);
         prefixGroupIdEl.val('');
         inputNameEl.val('');
         modalHeader.text('');
@@ -140,33 +136,31 @@
             inputNameEl.prop('type', 'text');
             saveTypeEl.val('group');
         } else if (type === 'addPrefix') {
-            modalHeader.text('Add new prefix in group ' + elementValue + ':');
+            modalHeader.text('Add new prefix:');
             prefixGroupIdEl.val(elementId);
             inputNameEl.prop('type', 'number');
             saveTypeEl.val('prefix');
         } else if (type === 'editPrefix') {
             modalHeader.text('Edit prefix:');
             inputNameEl.prop('type', 'number');
-            inputNameEl.val(elementValue);
-            prefixIdEl.val(elementId);
+            renderById(elementId, 'prefix');
+            saveIdEl.val(elementId);
             saveTypeEl.val('prefix');
         } else if (type === 'editGroup') {
-            groupIdEl.val(elementId);
-            inputNameEl.prop('type', 'text');
-            inputNameEl.val(elementValue);
             modalHeader.text('Edit group:');
+            inputNameEl.prop('type', 'text');
+            renderById(elementId, 'group');
+            saveIdEl.val(elementId);
             saveTypeEl.val('group');
         } else if (type === 'deletePrefix') {
             modalWindow = $('#deleteConfirm');
-            modalDeleteHeader.text('Delete prefix ' + elementValue + '?');
-            deletePrefixIdEl.val(elementId);
-            deleteGroupIdEl.val(0);
+            modalDeleteHeader.text('Delete prefix?');
+            deleteIdEl.val(elementId);
             deleteTypeEl.val('prefix');
         } else if (type === 'deleteGroup') {
             modalWindow = $('#deleteConfirm');
-            modalDeleteHeader.text('Delete group ' + elementValue + '?');
-            deletePrefixIdEl.val(0);
-            deleteGroupIdEl.val(elementId);
+            modalDeleteHeader.text('Delete group?');
+            deleteIdEl.val(elementId);
             deleteTypeEl.val('group');
         }
         modalWindow.modal('show');
@@ -175,15 +169,14 @@
     function saveElement() {
         var elementValue = $('#inputModalName').val();
         var prefixGroupId = $('#prefixGroupId').val();
-        var prefixId = $('#prefixId').val();
-        var groupId = $('#groupId').val();
+        var saveId = $('#saveId').val();
         var data, url;
         if ($('#saveType').val() === 'group') {
             url = "/prefix/saveGroup";
-            data = {"groupId": groupId, "groupName": elementValue};
+            data = {"groupId": saveId, "groupName": elementValue};
         } else {
             url = "/prefix/savePrefix";
-            data = {"prefixId": prefixId, "prefix": elementValue, "groupId": prefixGroupId};
+            data = {"prefixId": saveId, "prefix": elementValue, "groupId": prefixGroupId};
         }
         $.ajax({
             type: 'POST',
@@ -201,13 +194,31 @@
         });
     }
 
+    function renderById(id, type) {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: type === 'prefix' ? "/prefix/getPrefixById" : "/prefix/getGroupNameById",
+            data: {"id": id},
+            success: function (result) {
+                if (type === 'prefix') {
+                    $('#prefixId').val(result.id);
+                    $('#inputModalName').val(result.prefix);
+                } else {
+                    $('#groupId').val(result.id);
+                    $('#inputModalName').val(result.groupName);
+                }
+            }
+        })
+    }
+
     function deleteElement() {
         var data, url;
         if ($('#deleteType').val() === 'group') {
-            data = {"groupId": $('#deleteGroupId').val()};
+            data = {"groupId": $('#deleteId').val()};
             url = '/prefix/deleteGroup';
         } else {
-            data = {"prefixId": $('#deletePrefixId').val()};
+            data = {"prefixId": $('#deleteId').val()};
             url = '/prefix/deletePrefix';
         }
         $.ajax({

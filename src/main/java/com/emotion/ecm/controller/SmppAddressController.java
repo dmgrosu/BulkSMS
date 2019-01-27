@@ -1,34 +1,32 @@
 package com.emotion.ecm.controller;
 
 import com.emotion.ecm.exception.AccountException;
+import com.emotion.ecm.exception.SmppAddressException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
-import com.emotion.ecm.model.SmppAddress;
-import com.emotion.ecm.model.dto.PrefixDto;
 import com.emotion.ecm.model.dto.SmppAddressDto;
 import com.emotion.ecm.service.AppUserService;
 import com.emotion.ecm.service.SmppAddressService;
 import com.emotion.ecm.validation.AjaxResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
 import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping(value = "smppAddress")
 public class SmppAddressController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmppAddressController.class);
 
     private SmppAddressService smppAddressService;
     private AppUserService userService;
@@ -43,9 +41,11 @@ public class SmppAddressController {
     public String getList(Model model) {
 
         AppUser currUser = userService.getAuthenticatedUser();
-        List<SmppAddressDto> smppAddresses = smppAddressService.getAllDtoByAccount(currUser.getAccount());
-        model.addAttribute("smppAddresses", smppAddresses);
-
+        try {
+            model.addAttribute("smppAddresses", smppAddressService.getAllDtoByAccount(currUser.getAccount()));
+        } catch (AccountException e) {
+            LOGGER.error(e.getMessage());
+        }
         return "smppAddress/list";
     }
 
@@ -72,17 +72,18 @@ public class SmppAddressController {
 
         try {
             if (smppAddressDto.getSmppAddressId() == 0) {
-                if (checkDuplicateAddress(currAccount, smppAddressDto.getAddress())) {
+                if (smppAddressService.getByAccountAndAddress(currAccount, smppAddressDto.getAddress()).isPresent()) {
                     result.setValid(false);
                     allErrors.add(new FieldError("smppAddressDto", "address", "duplicate smpp address found"));
                 } else {
                     smppAddressDto.setAccountId(currAccount.getId());
-                    smppAddressService.saveNewSmppAddress(smppAddressDto);
+                    smppAddressService.saveSmppAddress(smppAddressDto);
                 }
             } else {
                 smppAddressService.updateSmppAddress(smppAddressDto);
             }
         } catch (AccountException e) {
+            LOGGER.error(e.getMessage());
             result.setValid(false);
             allErrors.add(new FieldError("smppAddressDto", "address", e.getMessage()));
         }
@@ -117,9 +118,15 @@ public class SmppAddressController {
         return result;
     }
 
-
-    private boolean checkDuplicateAddress(Account account, String address) {
-        return smppAddressService.getByAccountAndAddress(account, address).isPresent();
+    @GetMapping(value = "/getById")
+    @ResponseBody
+    public ResponseEntity<SmppAddressDto> findDtoById(@RequestParam(name = "id") int id) {
+        try {
+            SmppAddressDto result = smppAddressService.getById(id);
+            return ResponseEntity.ok(result);
+        } catch (SmppAddressException ex) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
 }

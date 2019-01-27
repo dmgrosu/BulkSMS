@@ -1,6 +1,5 @@
 package com.emotion.ecm.controller;
 
-import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
@@ -164,7 +163,7 @@ public class SmsPreviewController {
         model.addAttribute("priorities", priorityService.getAll());
         model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
         model.addAttribute("groupList", contactService.getAllGroupsByUser(currUser));
-        model.addAttribute("originators", smppAddressService.getAllByAccount(account));
+        model.addAttribute("originators", smppAddressService.getAllAddressesByAccount(account));
         model.addAttribute("availableExpTime", expirationTimeService.getAllByAccount(account));
     }
 }

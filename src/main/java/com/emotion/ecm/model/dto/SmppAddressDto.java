@@ -2,24 +2,33 @@ package com.emotion.ecm.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.jsmpp.bean.NumberingPlanIndicator;
 import org.jsmpp.bean.TypeOfNumber;
 
-import javax.validation.constraints.NotNull;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.validation.constraints.NotEmpty;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 public class SmppAddressDto {
 
     private int smppAddressId;
 
-    @NotNull
+    @NotEmpty
     private String address;
-
+    @Enumerated(EnumType.ORDINAL)
     private TypeOfNumber ton;
+    @Enumerated(EnumType.STRING)
     private NumberingPlanIndicator npi;
+
     private int accountId;
 
+    public SmppAddressDto() {
+    }
+
+    public SmppAddressDto(int smppAddressId, String address) {
+        this.smppAddressId = smppAddressId;
+        this.address = address;
+    }
 }

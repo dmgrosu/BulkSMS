@@ -3,19 +3,23 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.AccountDao;
 import com.emotion.ecm.dao.SmppAddressDao;
 import com.emotion.ecm.exception.AccountException;
+import com.emotion.ecm.exception.SmppAddressException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.SmppAddress;
 import com.emotion.ecm.model.dto.SmppAddressDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class SmppAddressService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmppAddressService.class);
 
     private SmppAddressDao smppAddressDao;
     private AccountDao accountDao;
@@ -26,50 +30,28 @@ public class SmppAddressService {
         this.accountDao = accountDao;
     }
 
-    public List<SmppAddress> getAllByAccount(Account account) {
-        return smppAddressDao.findAllByAccount(account);
+    public List<SmppAddressDto> getAllAddressesByAccount(Account account) {
+        return smppAddressDao.findAllAddressesByAccount(account);
     }
 
-    public List<SmppAddressDto> getAllDtoByAccount(Account account) {
-        return smppAddressDao.findAllByAccount(account).stream()
-                .map(this::convertSmppAddressToDto).collect(Collectors.toList());
+    public List<SmppAddressDto> getAllDtoByAccount(Account account) throws AccountException {
+        if (account == null) {
+            throw new AccountException("account is null");
+        }
+        return smppAddressDao.findAllDtoByAccount(account);
     }
 
     public Optional<SmppAddress> getByAccountAndAddress(Account account, String address) {
         return smppAddressDao.findByAccountAndAddress(account, address);
     }
 
-    public SmppAddressDto convertSmppAddressToDto(SmppAddress smppAddress) {
-
-        SmppAddressDto result = new SmppAddressDto();
-        result.setAccountId(smppAddress.getAccount().getId());
-        result.setSmppAddressId(smppAddress.getId());
-        result.setAddress(smppAddress.getAddress());
-        result.setTon(smppAddress.getTon());
-        result.setNpi(smppAddress.getNpi());
-
-        return result;
+    @Transactional
+    public SmppAddress saveSmppAddress(SmppAddress address) {
+        return smppAddressDao.save(address);
     }
 
-    public SmppAddress saveNewSmppAddress(SmppAddressDto dto) throws AccountException {
-        return smppAddressDao.save(convertDtoToSmppAddress(dto));
-    }
-
-    public SmppAddress convertDtoToSmppAddress(SmppAddressDto dto) throws AccountException {
-
-        SmppAddress result = new SmppAddress();
-        int accountId = dto.getAccountId();
-        Optional<Account> optionalAccount = accountDao.findById(accountId);
-        if (optionalAccount.isPresent()) {
-            result.setAccount(optionalAccount.get());
-            result.setAddress(dto.getAddress());
-            result.setTon(dto.getTon());
-            result.setNpi(dto.getNpi());
-        } else {
-            throw new AccountException(String.format("Account with id %s not found", accountId));
-        }
-
-        return result;
+    public SmppAddress saveSmppAddress(SmppAddressDto dto) throws AccountException {
+        return saveSmppAddress(convertDtoToSmppAddress(dto));
     }
 
     public SmppAddress updateSmppAddress(SmppAddressDto dto) throws AccountException {
@@ -93,12 +75,35 @@ public class SmppAddressService {
         }
 
         if (changed) {
-            smppAddressDao.save(smppAddress);
+            saveSmppAddress(smppAddress);
         }
         return smppAddress;
     }
 
+    @Transactional
     public void deleteById(int smppAddressId) {
         smppAddressDao.deleteById(smppAddressId);
     }
+
+    public SmppAddressDto getById(int id) throws SmppAddressException {
+        return smppAddressDao.findDtoById(id);
+    }
+
+    private SmppAddress convertDtoToSmppAddress(SmppAddressDto dto) throws AccountException {
+
+        SmppAddress result = new SmppAddress();
+        int accountId = dto.getAccountId();
+        Optional<Account> optionalAccount = accountDao.findById(accountId);
+        if (optionalAccount.isPresent()) {
+            result.setAccount(optionalAccount.get());
+            result.setAddress(dto.getAddress());
+            result.setTon(dto.getTon());
+            result.setNpi(dto.getNpi());
+        } else {
+            throw new AccountException(String.format("Account with id %s not found", accountId));
+        }
+
+        return result;
+    }
+
 }

@@ -3,6 +3,8 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.AppRoleDao;
 import com.emotion.ecm.dao.AppUserDao;
 import com.emotion.ecm.enums.RoleName;
+import com.emotion.ecm.enums.UserStatus;
+import com.emotion.ecm.exception.UserNotFoundException;
 import com.emotion.ecm.model.AppRole;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.dto.UserDto;
@@ -16,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -55,6 +58,7 @@ public class AppUserService {
 
         AppUser appUser = convertUserDtoToUser(userDto);
         appUser.setPassword(passwordEncoder.encode(userDto.getPassword()));
+        appUser.setStatus(UserStatus.CREATED);
 
         Optional<AppRole> optionalRole = appRoleDao.findByName(RoleName.USER);
         AppRole roleUser = optionalRole.orElseGet(this::createNewUserRole);
@@ -73,6 +77,21 @@ public class AppUserService {
         return getByUsername(authentication.getName()).orElse(new AppUser());
     }
 
+    public List<UserDto> getAllDto() {
+        return appUserDao.findAllDto();
+    }
+
+    public void changeUserStatus(UserDto dto) throws UserNotFoundException {
+        Optional<AppUser> optional = appUserDao.findById(dto.getUserId());
+        if (optional.isPresent()) {
+            AppUser user = optional.get();
+            user.setStatus(dto.getStatus());
+            appUserDao.save(user);
+        } else {
+            throw new UserNotFoundException(String.format("User with id %s not found", dto.getUserId()));
+        }
+    }
+
     private AppUser convertUserDtoToUser(UserDto userDto) {
         AppUser result = new AppUser();
         result.setFirstName(userDto.getFirstName());
@@ -87,4 +106,5 @@ public class AppUserService {
         role.setName(RoleName.USER);
         return appRoleDao.save(role);
     }
+
 }

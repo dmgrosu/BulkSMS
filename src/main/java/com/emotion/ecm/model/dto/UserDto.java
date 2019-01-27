@@ -1,37 +1,54 @@
 package com.emotion.ecm.model.dto;
 
+import com.emotion.ecm.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.validation.constraints.Email;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
 public class UserDto {
 
     private int userId;
 
-    @NotNull
+    @NotEmpty
     private String firstName;
-
-    @NotNull
+    @NotEmpty
     private String lastName;
-
     @Email
-    @NotNull
+    @NotEmpty
     private String email;
-
-    @NotNull
+    @NotEmpty
     private String username;
-
-    @NotNull
+    @NotEmpty
     private String password;
-
-    @NotNull
+    @NotEmpty
     private String confirmPassword;
+    @Enumerated(value = EnumType.STRING)
+    private UserStatus status;
 
+    private int accountId;
+    private String accountName;
+
+    public UserDto() {
+    }
+
+    public UserDto(int id, String firstName, String lastName, String email,
+                   String username, UserStatus status, int accountId, String accountName) {
+        this.userId = id;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.username = username;
+        this.status = status;
+        this.accountId = accountId;
+        this.accountName = accountName;
+    }
 
 }

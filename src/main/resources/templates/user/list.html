@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>Admin</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+
+<div th:replace="fragments/header"></div>
+
+<div class="container-fluid col-md-12">
+
+    <table class="table table-condensed table-hover table-bordered">
+        <thead>
+        <tr class="text-center">
+            <th>Account</th>
+            <th>Username</th>
+            <th>First name</th>
+            <th>Last name</th>
+            <th>E-mail</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${users.isEmpty()}">
+            <td colspan="6">No users registered</td>
+        </tr>
+        <tr th:each="user:${users}">
+            <td>
+                <span th:text="${user.accountName}"></span>
+            </td>
+            <td>
+                <span th:text="${user.username}"></span>
+            </td>
+            <td>
+                <span th:text="${user.firstName}"></span>
+            </td>
+            <td>
+                <span th:text="${user.lastName}"></span>
+            </td>
+            <td>
+                <span th:text="${user.email}"></span>
+            </td>
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${user.status}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#" th:if="${user.status.name()}=='CREATED' or ${user.status.name()}=='BLOCKED'"
+                               th:onclick="'showChangeStatusModal('+${user.userId}+',\'ACTIVE\')'"> activate</a></li>
+                        <li><a href="#" th:if="${user.status.name()}=='CREATED' or ${user.status.name()}=='ACTIVE'"
+                               th:onclick="'showChangeStatusModal('+${user.userId}+',\'BLOCKED\')'"> block</a></li>
+                        <li><a href="#"
+                               th:onclick="'showChangeStatusModal('+${user.userId}+',\'DELETED\')'"> delete</a></li>
+                    </ul>
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+<div id="changeStatusConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modal2Header"></h4>
+                <input type="hidden" id="userId">
+                <input type="hidden" id="newStatus">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="changeStatus()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+
+<script type="text/javascript">
+
+    function showChangeStatusModal(userId, newStatus) {
+        $('#modal2Header').text('Change user status to \'' + newStatus + '\'?');
+        $('#userId').val(userId);
+        $('#newStatus').val(newStatus);
+        $('#changeStatusConfirm').modal('show');
+    }
+
+    function changeStatus() {
+        var data = {
+            "userId": $('#userId').val(),
+            "status": $('#newStatus').val()
+        };
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/user/changeStatus',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function (data) {
+                $('#changeStatusConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function (errors) {
+
+            }
+        });
+    }
+
+</script>
+
+

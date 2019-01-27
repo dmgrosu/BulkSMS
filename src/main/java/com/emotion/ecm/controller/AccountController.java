@@ -79,7 +79,7 @@ public class AccountController {
     public ResponseEntity<?> delete(@RequestBody AccountDto dto) {
         try {
             accountService.deleteById(dto.getAccountId());
-            return ResponseEntity.ok("deleted id " + dto.getAccountId());
+            return ResponseEntity.ok(dto);
         } catch (Exception ex) {
             return ResponseEntity.notFound().build();
         }

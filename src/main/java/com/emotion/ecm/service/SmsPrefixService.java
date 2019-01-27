@@ -3,6 +3,8 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.AccountDao;
 import com.emotion.ecm.dao.SmsPrefixDao;
 import com.emotion.ecm.dao.SmsPrefixGroupDao;
+import com.emotion.ecm.exception.AccountException;
+import com.emotion.ecm.exception.PrefixException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.SmsPrefix;
 import com.emotion.ecm.model.SmsPrefixGroup;
@@ -32,8 +34,8 @@ public class SmsPrefixService {
         this.groupDao = groupDao;
     }
 
-    public Optional<SmsPrefix> getByGroupAndPrefix(SmsPrefixGroup group, String prefix) {
-        return prefixDao.findByPrefixGroupAndPrefix(group, prefix);
+    public Optional<SmsPrefix> getByGroupIdAndPrefix(int groupId, String prefix) {
+        return prefixDao.findByPrefixGroupIdAndPrefix(groupId, prefix);
     }
 
     public List<SmsPrefix> getAllByPrefixGroup(SmsPrefixGroup group) {
@@ -48,8 +50,8 @@ public class SmsPrefixService {
         return groupDao.findByAccountAndName(account, name);
     }
 
-    public Optional<SmsPrefixGroup> getGroupById(int groupId) {
-        return groupDao.findById(groupId);
+    public PrefixGroupDto getGroupDtoById(int groupId) throws PrefixException {
+        return groupDao.findDtoById(groupId);
     }
 
     public boolean isMsisdnValidForAccount(Account account, String msisdn) {
@@ -83,48 +85,27 @@ public class SmsPrefixService {
                 .collect(Collectors.toList());
     }
 
-    public SmsPrefix convertDtoToPrefix(PrefixDto prefixDto) throws IllegalArgumentException {
 
-        SmsPrefix result = new SmsPrefix();
-
-        Optional<SmsPrefixGroup> optionalGroup = groupDao.findById(prefixDto.getGroupId());
-        if (!optionalGroup.isPresent()) {
-            throw new IllegalArgumentException("no group with id " + prefixDto.getGroupId());
-        }
-
-        result.setPrefix(prefixDto.getPrefix());
-        result.setPrefixGroup(optionalGroup.get());
-
-        return result;
+    @Transactional
+    public SmsPrefix savePrefix(SmsPrefix prefix) {
+        return prefixDao.save(prefix);
     }
 
     @Transactional
-    public SmsPrefix createNewPrefix(PrefixDto prefixDto) throws NullPointerException {
-        if (prefixDto.getGroupId() == 0) {
-            throw new NullPointerException("no groupId in prefixDto");
-        }
-        return prefixDao.save(convertDtoToPrefix(prefixDto));
+    public SmsPrefix savePrefix(PrefixDto prefixDto) throws PrefixException {
+        SmsPrefix prefix = convertPrefixDtoToPrefix(prefixDto);
+        return savePrefix(prefix);
     }
 
     @Transactional
-    public SmsPrefix updatePrefix(PrefixDto prefixDto) throws NullPointerException {
+    public SmsPrefixGroup savePrefixGroup(SmsPrefixGroup group) {
+        return groupDao.save(group);
+    }
 
-        int prefixId = prefixDto.getPrefixId();
-
-        if (prefixId == 0) {
-            throw new NullPointerException("no prefixId in prefixDto");
-        }
-        Optional<SmsPrefix> optional = prefixDao.findById(prefixId);
-        if (!optional.isPresent()) {
-            throw new IllegalArgumentException("no prefix with id " + prefixId + " found");
-        }
-        SmsPrefix smsPrefix = optional.get();
-        if (smsPrefix.getPrefix().equals(prefixDto.getPrefix())) {
-            return smsPrefix;
-        } else {
-            return prefixDao.save(smsPrefix);
-        }
-
+    @Transactional
+    public SmsPrefixGroup savePrefixGroup(PrefixGroupDto prefixGroupDto, Account currAccount) throws AccountException {
+        SmsPrefixGroup group = convertGroupDtoToGroup(prefixGroupDto, currAccount);
+        return savePrefixGroup(group);
     }
 
     @Transactional
@@ -137,42 +118,50 @@ public class SmsPrefixService {
         prefixDao.deleteById(prefixId);
     }
 
-    @Transactional
-    public SmsPrefixGroup createNewGroup(PrefixGroupDto groupDto) {
-        return groupDao.save(convertDtoToGroup(groupDto));
+    public PrefixDto getPrefixDtoById(int id) throws PrefixException {
+        return prefixDao.findDtoById(id);
     }
 
-    public SmsPrefixGroup convertDtoToGroup(PrefixGroupDto groupDto) throws NullPointerException {
+    private SmsPrefix convertPrefixDtoToPrefix(PrefixDto prefixDto) throws PrefixException {
 
-        if (groupDto.getAccountId() == 0) {
-            throw new NullPointerException("no account id");
+        SmsPrefix result = prefixDao.findById(prefixDto.getPrefixId()).orElse(new SmsPrefix());
+
+        if (prefixDto.getPrefixId() == 0) {
+            Optional<SmsPrefixGroup> optionalGroup = groupDao.findById(prefixDto.getGroupId());
+            if (!optionalGroup.isPresent()) {
+                throw new PrefixException("no prefix group with id " + prefixDto.getGroupId());
+            }
+            if (!optionalGroup.get().equals(result.getPrefixGroup())) {
+                result.setPrefixGroup(optionalGroup.get());
+            }
         }
-        Optional<Account> optionalAccount = accountDao.findById(groupDto.getAccountId());
-        if (!optionalAccount.isPresent()) {
-            throw new NullPointerException("no account with id " + groupDto.getAccountId() + " found!");
+
+        if (!prefixDto.getPrefix().equals(result.getPrefix())) {
+            result.setPrefix(prefixDto.getPrefix());
         }
-        SmsPrefixGroup result = new SmsPrefixGroup();
-        result.setAccount(optionalAccount.get());
-        result.setName(groupDto.getGroupName());
 
         return result;
     }
 
-    @Transactional
-    public SmsPrefixGroup updateGroup(PrefixGroupDto groupDto) {
-        if (groupDto.getGroupId() == 0) {
-            throw new NullPointerException("no groupId in groupDto");
+    private SmsPrefixGroup convertGroupDtoToGroup(PrefixGroupDto groupDto, Account currAccount) throws AccountException {
+
+        if (currAccount == null) {
+            Optional<Account> optionalAccount = accountDao.findById(groupDto.getAccountId());
+            if (!optionalAccount.isPresent()) {
+                throw new AccountException("no account with id " + groupDto.getAccountId() + " found!");
+            }
+            currAccount = optionalAccount.get();
         }
-        Optional<SmsPrefixGroup> optional = groupDao.findById(groupDto.getGroupId());
-        if (optional.isPresent()) {
-            throw new IllegalArgumentException("no group with id " + groupDto.getGroupId() + " found");
+
+        SmsPrefixGroup result = groupDao.findById(groupDto.getGroupId()).orElse(new SmsPrefixGroup());
+        if (!groupDto.getGroupName().equals(result.getName())) {
+            result.setName(groupDto.getGroupName());
         }
-        SmsPrefixGroup group = optional.get();
-        if (group.getName().equals(groupDto.getGroupName())) {
-            return group;
-        } else {
-            return groupDao.save(group);
+        if (!currAccount.equals(result.getAccount())) {
+            result.setAccount(currAccount);
         }
+
+        return result;
     }
 
 }

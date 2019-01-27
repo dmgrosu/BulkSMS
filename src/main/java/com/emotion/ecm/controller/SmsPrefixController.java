@@ -1,9 +1,9 @@
 package com.emotion.ecm.controller;
 
+import com.emotion.ecm.exception.AccountException;
+import com.emotion.ecm.exception.PrefixException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
-import com.emotion.ecm.model.SmsPrefix;
-import com.emotion.ecm.model.SmsPrefixGroup;
 import com.emotion.ecm.model.dto.PrefixDto;
 import com.emotion.ecm.model.dto.PrefixGroupDto;
 import com.emotion.ecm.service.AppUserService;
@@ -14,15 +14,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.Errors;
 import org.springframework.validation.FieldError;
-import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Controller
 @RequestMapping(value = "/prefix")
@@ -45,6 +42,32 @@ public class SmsPrefixController {
         return "prefix/list";
     }
 
+    @GetMapping(value = "/getGroupNameById")
+    @ResponseBody
+    public ResponseEntity<?> getGroupDtoById(@RequestParam(name = "id") int id) {
+        try {
+            PrefixGroupDto result = prefixService.getGroupDtoById(id);
+            return ResponseEntity.ok(result);
+        } catch (PrefixException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/getPrefixById")
+    @ResponseBody
+    public ResponseEntity<?> getPrefixDtoById(@RequestParam(name = "id") int id) {
+        try {
+            PrefixDto result = prefixService.getPrefixDtoById(id);
+            return ResponseEntity.ok(result);
+        } catch (PrefixException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
     @PostMapping(value = "/savePrefix")
     @ResponseBody
     public AjaxResponseBody savePrefix(@Valid @RequestBody PrefixDto prefixDto, BindingResult bindingResult) {
@@ -57,20 +80,20 @@ public class SmsPrefixController {
             allErrors.addAll(bindingResult.getFieldErrors());
         }
 
-        try {
-            if (prefixDto.getPrefixId() == 0) {
-                if (checkPrefixDuplicate(prefixDto)) {
-                    result.setValid(false);
-                    allErrors.add(new FieldError("prefixDto", "prefixId", "prefixId is 0"));
-                } else {
-                    prefixService.createNewPrefix(prefixDto);
-                }
-            } else {
-                prefixService.updatePrefix(prefixDto);
+        if (prefixDto.getPrefixId() == 0) {
+            if (prefixService.getByGroupIdAndPrefix(prefixDto.getGroupId(), prefixDto.getPrefix()).isPresent()) {
+                result.setValid(false);
+                allErrors.add(new FieldError("prefixDto", "prefixId", "prefixId is 0"));
             }
-        } catch (NullPointerException e) {
-            result.setValid(false);
-            allErrors.add(new FieldError("prefixDto", "prefix", e.getMessage()));
+        }
+
+        if (result.isValid()) {
+            try {
+                prefixService.savePrefix(prefixDto);
+            } catch (PrefixException e) {
+                result.setValid(false);
+                allErrors.add(new FieldError("prefixDto", "prefixId", e.getMessage()));
+            }
         }
 
         return result;
@@ -91,22 +114,20 @@ public class SmsPrefixController {
             allErrors.addAll(bindingResult.getFieldErrors());
         }
 
-        try {
-            if (groupDto.getGroupId() == 0) {
-                if (checkGroupDuplicate(currAccount, groupDto)) {
-                    result.setValid(false);
-                    allErrors.add(new FieldError("groupDto", "groupId", "groupId is 0"));
-                } else {
-                    groupDto.setAccountId(currAccount.getId());
-                    prefixService.createNewGroup(groupDto);
-                }
-            } else {
-                prefixService.updateGroup(groupDto);
+        if (groupDto.getGroupId() == 0) {
+            if (prefixService.getGroupByAccountAndName(currAccount, groupDto.getGroupName()).isPresent()) {
+                result.setValid(false);
+                allErrors.add(new FieldError("groupDto", "groupId", "groupId is 0"));
             }
-            result.setValid(true);
-        } catch (NullPointerException e) {
-            result.setValid(false);
-            allErrors.add(new FieldError("groupDto", "groupName", e.getMessage()));
+        }
+
+        if (result.isValid()) {
+            try {
+                prefixService.savePrefixGroup(groupDto, currAccount);
+            } catch (AccountException e) {
+                result.setValid(false);
+                allErrors.add(new FieldError("groupDto", "accountId", e.getMessage()));
+            }
         }
 
         return result;
@@ -114,7 +135,7 @@ public class SmsPrefixController {
 
     @PostMapping(value = "/deletePrefix")
     @ResponseBody
-    public AjaxResponseBody deletePrefix(@Valid @RequestBody PrefixDto prefixDto, BindingResult bindingResult) {
+    public AjaxResponseBody deletePrefix(@RequestBody PrefixDto prefixDto, BindingResult bindingResult) {
 
         List<FieldError> allErrors = new ArrayList<>();
         AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
@@ -154,17 +175,6 @@ public class SmsPrefixController {
         }
 
         return result;
-    }
-
-    private boolean checkPrefixDuplicate(PrefixDto prefixDto) {
-        Optional<SmsPrefixGroup> optionalGroup = prefixService.getGroupById(prefixDto.getGroupId());
-        return optionalGroup.filter(smsPrefixGroup ->
-                prefixService.getByGroupAndPrefix(smsPrefixGroup, prefixDto.getPrefix())
-                        .isPresent()).isPresent();
-    }
-
-    private boolean checkGroupDuplicate(Account currAccount, PrefixGroupDto groupDto) {
-        return prefixService.getGroupByAccountAndName(currAccount, groupDto.getGroupName()).isPresent();
     }
 
 }
