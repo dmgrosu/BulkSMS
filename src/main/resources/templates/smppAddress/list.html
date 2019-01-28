@@ -21,9 +21,10 @@
     <table class="table table-condensed table-hover table-bordered">
         <thead>
         <tr class="text-center">
+            <th></th>
             <th>Address</th>
-            <th>TON</th>
-            <th>NPI</th>
+            <th>Type of number (TON)</th>
+            <th>Numbering plan indicator (NPI)</th>
         </tr>
         </thead>
         <tbody>
@@ -31,6 +32,9 @@
             <td colspan="3" class="text-center"> No addresses available</td>
         </tr>
         <tr th:each="item:${smppAddresses}">
+            <td>
+                <input type="checkbox">
+            </td>
             <td>
                 <span class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown"
@@ -46,10 +50,10 @@
                 </span>
             </td>
             <td>
-                <span th:text="${item.ton}"></span>
+                <span th:text="${item.ton.value()}+' - '+${item.ton.name()}"></span>
             </td>
             <td>
-                <span th:text="${item.npi}"></span>
+                <span th:text="${item.npi.value()}+' - '+${item.npi.name()}"></span>
             </td>
         </tr>
         </tbody>
@@ -67,25 +71,36 @@
                 <input type="hidden" id="smppAddressId">
                 <input type="hidden" id="accountId">
                 <div class="form-group">
-                    <label for="address" class="control-label col-sm-2">Address:</label>
-                    <div class="col-sm-10">
+                    <label for="address" class="control-label col-sm-6">Address:</label>
+                    <div class="col-sm-6">
                         <input type="text" class="form-control input-sm" id="address">
+                        <p class="error-message" id="addressMessageError"></p>
                     </div>
-                    <p class="error-message" id="addressMessageError"></p>
                 </div>
                 <div class="form-group">
-                    <label for="ton" class="control-label col-sm-2">TON:</label>
-                    <div class="col-sm-10">
-                        <input type="number" class="form-control input-sm" id="ton">
+                    <label for="ton" class="control-label col-sm-6">Type of number (TON):</label>
+                    <div class="col-sm-6">
+                        <select class="form-control input-sm" id="ton" required="required">
+                            <option th:each="ton:${allTonValues}"
+                                    th:value="${ton.name()}"
+                                    th:text="${ton.value()}+' - '+${ton.name()}">
+                            </option>
+                        </select>
+                        <p class="error-message" id="tonMessageError"></p>
                     </div>
-                    <p class="error-message" id="tonMessageError"></p>
+
                 </div>
                 <div class="form-group">
-                    <label for="npi" class="control-label col-sm-2">NPI:</label>
-                    <div class="col-sm-10">
-                        <input type="number" class="form-control input-sm" id="npi">
+                    <label for="npi" class="control-label col-sm-6">Numbering plan indicator (NPI):</label>
+                    <div class="col-sm-6">
+                        <select class="form-control input-sm" id="npi">
+                            <option th:each="npi:${allNpiValues}"
+                                    th:value="${npi.name()}"
+                                    th:text="${npi.value()}+' - '+${npi.name()}">
+                            </option>
+                        </select>
+                        <p class="error-message" id="npiMessageError"></p>
                     </div>
-                    <p class="error-message" id="npiMessageError"></p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -161,26 +176,21 @@
     }
 
     function saveElement() {
-        var accountId = $('#accountId').val();
-        var addressId = $('#smppAddressId').val();
-        var addressValue = $('#address').val();
-        var tonValue = $('#ton').val();
-        var npiValue = $('#npi').val();
-        var data, url;
-        url = "/smppAddress/save";
-        data = {
-            "smppAddressId": addressId,
-            "address": addressValue,
-            "ton": tonValue, "npi": npiValue,
-            "accountId": accountId
+        clearErrors();
+        var data = {
+            "smppAddressId": $('#smppAddressId').val(),
+            "address": $('#address').val(),
+            "ton": $('#ton').val(),
+            "npi": $('#npi').val(),
+            "accountId": $('#accountId').val()
         };
         $.ajax({
             type: 'POST',
             contentType: "application/json",
-            url: url,
+            url: "/smppAddress/save",
             data: JSON.stringify(data),
             dataType: "JSON",
-            success: function () {
+            success: function (result) {
                 if (result.valid) {
                     $('#modalAdd').modal('hide');
                     window.location.reload();

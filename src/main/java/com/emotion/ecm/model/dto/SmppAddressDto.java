@@ -5,9 +5,8 @@ import lombok.Data;
 import org.jsmpp.bean.NumberingPlanIndicator;
 import org.jsmpp.bean.TypeOfNumber;
 
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
 
 @Data
 @AllArgsConstructor
@@ -17,9 +16,9 @@ public class SmppAddressDto {
 
     @NotEmpty
     private String address;
-    @Enumerated(EnumType.ORDINAL)
+    @NotNull
     private TypeOfNumber ton;
-    @Enumerated(EnumType.STRING)
+    @NotNull
     private NumberingPlanIndicator npi;
 
     private int accountId;

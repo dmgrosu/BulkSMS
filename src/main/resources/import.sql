@@ -19,5 +19,5 @@ insert into tb_expiration_time values (3, 0, '1 hour', '000000010000000R', 1);
 insert into tb_expiration_time values (4, 0, '3 hours', '000000030000000R', 1);
 insert into tb_sms_prefix_group values (1, 0, 'UMS', 1);
 insert into tb_sms_prefix values (1, 0, '998', 1);
-insert into tb_smpp_address values (1, 'PREZIDENTUZ', 0, 'UNKNOWN', 0, 1);
+insert into tb_smpp_address values (1, 'PREZIDENTUZ', 0, 'UNKNOWN', 5, 1);
 

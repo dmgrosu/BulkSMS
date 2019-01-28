@@ -50,34 +50,8 @@ public class SmppAddressService {
         return smppAddressDao.save(address);
     }
 
-    public SmppAddress saveSmppAddress(SmppAddressDto dto) throws AccountException {
-        return saveSmppAddress(convertDtoToSmppAddress(dto));
-    }
-
-    public SmppAddress updateSmppAddress(SmppAddressDto dto) throws AccountException {
-        Optional<SmppAddress> optionalSmppAddress = smppAddressDao.findById(dto.getSmppAddressId());
-        if (!optionalSmppAddress.isPresent()) {
-            throw new AccountException(String.format("SMPP address with id %s not found", dto.getSmppAddressId()));
-        }
-        SmppAddress smppAddress = optionalSmppAddress.get();
-        boolean changed = false;
-        if (!dto.getAddress().equals(smppAddress.getAddress())) {
-            changed = true;
-            smppAddress.setAddress(dto.getAddress());
-        }
-        if (dto.getTon() != smppAddress.getTon()) {
-            changed = true;
-            smppAddress.setTon(dto.getTon());
-        }
-        if (dto.getNpi() != smppAddress.getNpi()) {
-            changed = true;
-            smppAddress.setNpi(dto.getNpi());
-        }
-
-        if (changed) {
-            saveSmppAddress(smppAddress);
-        }
-        return smppAddress;
+    public SmppAddress saveSmppAddress(SmppAddressDto dto, Account currAccount) throws AccountException {
+        return saveSmppAddress(convertDtoToSmppAddress(dto, currAccount));
     }
 
     @Transactional
@@ -85,23 +59,26 @@ public class SmppAddressService {
         smppAddressDao.deleteById(smppAddressId);
     }
 
-    public SmppAddressDto getById(int id) throws SmppAddressException {
+    public SmppAddressDto getDtoById(int id) throws SmppAddressException {
         return smppAddressDao.findDtoById(id);
     }
 
-    private SmppAddress convertDtoToSmppAddress(SmppAddressDto dto) throws AccountException {
+    private SmppAddress convertDtoToSmppAddress(SmppAddressDto dto, Account currAccount) throws AccountException {
+
+        if (currAccount == null) {
+            Optional<Account> optionalAccount = accountDao.findById(dto.getAccountId());
+            if (optionalAccount.isPresent()) {
+                currAccount = optionalAccount.get();
+            } else {
+                throw new AccountException(String.format("Account with id %s not found", dto.getAccountId()));
+            }
+        }
 
         SmppAddress result = new SmppAddress();
-        int accountId = dto.getAccountId();
-        Optional<Account> optionalAccount = accountDao.findById(accountId);
-        if (optionalAccount.isPresent()) {
-            result.setAccount(optionalAccount.get());
-            result.setAddress(dto.getAddress());
-            result.setTon(dto.getTon());
-            result.setNpi(dto.getNpi());
-        } else {
-            throw new AccountException(String.format("Account with id %s not found", accountId));
-        }
+        result.setAccount(currAccount);
+        result.setAddress(dto.getAddress());
+        result.setTon(dto.getTon());
+        result.setNpi(dto.getNpi());
 
         return result;
     }
