@@ -45,8 +45,7 @@ public class AccountService {
 
     private Account convertDtoToAccount(AccountDto dto) {
 
-        Account result = accountDao.findById(dto.getAccountId())
-                .orElse(new Account());
+        Account result = accountDao.findById(dto.getAccountId()).orElseGet(Account::new);
 
         result.setName(dto.getName());
         result.setTps(dto.getTps());

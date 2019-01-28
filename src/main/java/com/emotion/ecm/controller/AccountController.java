@@ -31,9 +31,7 @@ public class AccountController {
     @GetMapping(value = "/list")
     public String showList(Model model) {
 
-        List<AccountDto> allDto = accountService.getAllDto();
-
-        model.addAttribute("accounts", allDto);
+        model.addAttribute("accounts", accountService.getAllDto());
         return "account/list";
     }
 

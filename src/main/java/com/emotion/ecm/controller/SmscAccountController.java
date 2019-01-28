@@ -1,8 +1,13 @@
 package com.emotion.ecm.controller;
 
+import com.emotion.ecm.exception.SmppAddressException;
+import com.emotion.ecm.exception.SmscAccountException;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import com.emotion.ecm.service.SmscAccountService;
 import com.emotion.ecm.validation.AjaxResponseBody;
+import oracle.jrockit.jfr.VMJFR;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,6 +24,8 @@ import java.util.List;
 @RequestMapping(value = "/smscAccount")
 public class SmscAccountController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmscAccountController.class);
+
     private SmscAccountService smscAccountService;
 
     @Autowired
@@ -32,6 +39,22 @@ public class SmscAccountController {
         model.addAttribute("smscAccounts", smscAccountService.getAllDto());
 
         return "smscAccount/list";
+    }
+
+    @GetMapping(value = "/getById")
+    @ResponseBody
+    public ResponseEntity<SmscAccountDto> findDtoById(@RequestParam(name = "id") int id) {
+        try {
+            SmscAccountDto result = smscAccountService.getDtoById(id);
+            return ResponseEntity.ok(result);
+        } catch (SmscAccountException e) {
+            LOGGER.error(e.getMessage());
+            return ResponseEntity.notFound().build();
+        } catch (Exception ex) {
+            LOGGER.error(ex.getMessage());
+            return ResponseEntity.badRequest().body(new SmscAccountDto());
+        }
+
     }
 
     @PostMapping(value = "/save")

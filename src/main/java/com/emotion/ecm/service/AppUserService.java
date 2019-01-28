@@ -74,7 +74,7 @@ public class AppUserService {
 
     public AppUser getAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return getByUsername(authentication.getName()).orElse(new AppUser());
+        return getByUsername(authentication.getName()).orElseGet(AppUser::new);
     }
 
     public List<UserDto> getAllDto() {

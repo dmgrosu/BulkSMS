@@ -124,7 +124,7 @@ public class SmsPrefixService {
 
     private SmsPrefix convertPrefixDtoToPrefix(PrefixDto prefixDto) throws PrefixException {
 
-        SmsPrefix result = prefixDao.findById(prefixDto.getPrefixId()).orElse(new SmsPrefix());
+        SmsPrefix result = prefixDao.findById(prefixDto.getPrefixId()).orElseGet(SmsPrefix::new);
 
         if (prefixDto.getPrefixId() == 0) {
             Optional<SmsPrefixGroup> optionalGroup = groupDao.findById(prefixDto.getGroupId());
@@ -153,7 +153,7 @@ public class SmsPrefixService {
             currAccount = optionalAccount.get();
         }
 
-        SmsPrefixGroup result = groupDao.findById(groupDto.getGroupId()).orElse(new SmsPrefixGroup());
+        SmsPrefixGroup result = groupDao.findById(groupDto.getGroupId()).orElseGet(SmsPrefixGroup::new);
         if (!groupDto.getGroupName().equals(result.getName())) {
             result.setName(groupDto.getGroupName());
         }

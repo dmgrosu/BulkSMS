@@ -1,15 +1,15 @@
 package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.SmscAccountDao;
-import com.emotion.ecm.model.Account;
+import com.emotion.ecm.exception.SmscAccountException;
 import com.emotion.ecm.model.SmscAccount;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class SmscAccountService {
@@ -40,15 +40,10 @@ public class SmscAccountService {
     }
 
     public SmscAccount save(SmscAccountDto smscAccountDto) {
-        Optional<SmscAccount> optional = smscAccountDao.findById(smscAccountDto.getSmscAccountId());
-        SmscAccount result = optional.orElseGet(SmscAccount::new);
-        SmscAccount converted = convertDtoToSmscAccount(smscAccountDto);
-        if (!result.equals(converted)) {
-            result = smscAccountDao.save(converted);
-        }
-        return result;
+        return save(convertDtoToSmscAccount(smscAccountDto));
     }
 
+    @Transactional
     public SmscAccount save(SmscAccount smscAccount) {
         return smscAccountDao.save(smscAccount);
     }
@@ -61,9 +56,15 @@ public class SmscAccountService {
         return smscAccountDao.findById(smscAccountId).orElse(null);
     }
 
+    public SmscAccountDto getDtoById(int smscAccountId) throws SmscAccountException {
+        return smscAccountDao.findDtoById(smscAccountId);
+    }
+
     private SmscAccount convertDtoToSmscAccount(SmscAccountDto dto) {
 
-        SmscAccount result = new SmscAccount();
+        Optional<SmscAccount> optional = smscAccountDao.findById(dto.getSmscAccountId());
+        SmscAccount result = optional.orElseGet(SmscAccount::new);
+
         result.setSystemId(dto.getSystemId());
         result.setPassword(dto.getPassword());
         result.setIpAddress(dto.getIpAddress());

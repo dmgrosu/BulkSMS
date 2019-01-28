@@ -69,41 +69,46 @@
             </div>
             <div class="form-horizontal modal-body">
                 <input type="hidden" id="smscAccountId">
-                <input type="hidden" id="accountId">
                 <div class="form-group">
                     <label for="systemId" class="control-label col-sm-3">System id:</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control input-sm" id="systemId">
+                        <p class="error-message" id="systemIdMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="password" class="control-label col-sm-3">Password:</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control input-sm" id="password">
+                        <p class="error-message" id="passwordMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="ipAddress" class="control-label col-sm-3">IP address:</label>
                     <div class="col-sm-9">
                         <input type="text" class="form-control input-sm" id="ipAddress">
+                        <p class="error-message" id="ipAddressMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="port" class="control-label col-sm-3">Port:</label>
                     <div class="col-sm-9">
                         <input type="number" class="form-control input-sm" id="port">
+                        <p class="error-message" id="portMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="tps" class="control-label col-sm-3">TPS:</label>
                     <div class="col-sm-9">
                         <input type="number" class="form-control input-sm" id="tps">
+                        <p class="error-message" id="tpsMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
                     <label for="maxConnections" class="control-label col-sm-5">Max number of connections:</label>
                     <div class="col-sm-7">
                         <input type="number" class="form-control input-sm" id="maxConnections">
+                        <p class="error-message" id="maxConnectionsMessageError"></p>
                     </div>
                 </div>
                 <div class="form-group">
@@ -141,7 +146,8 @@
 
 <script type="text/javascript">
 
-    function showModal(type, elementId, elementValue) {
+    function showModal(type, elementId) {
+        clearErrors();
         var modalWindow = $('#modalAdd');
         var smscAccountIdEl = $('#smscAccountId');
         var systemIdEl = $('#systemId');
@@ -163,8 +169,7 @@
             headerTextEl.text('Add new SMSC:');
         } else if (type === 'edit') {
             headerTextEl.text('Edit SMSC:');
-            addressIdEl.val(elementId);
-            systemIdEl.val(elementValue);
+            renderById(elementId);
         } else if (type === 'delete') {
             modalWindow = $('#deleteConfirm');
             deleteSmscAccountId.val(elementId);
@@ -172,7 +177,33 @@
         modalWindow.modal('show');
     }
 
+    function clearErrors() {
+        var sel = $("p[id*='MessageError']");
+        sel.text('');
+        sel.parent().removeClass('has-error');
+    }
+
+    function renderById(smscAccountId) {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/smscAccount/getById",
+            data: {"id": smscAccountId},
+            success: function (result) {
+                $('#smscAccountId').val(result.smscAccountId);
+                $('#systemId').val(result.systemId);
+                $('#password').val(result.password);
+                $('#ipAddress').val(result.ipAddress);
+                $('#port').val(result.port);
+                $('#tps').val(result.tps);
+                $('#maxConnections').val(result.maxConnections);
+                $('#asynchronous').prop('checked',result.asynchronous);
+            }
+        })
+    }
+
     function saveElement() {
+        clearErrors();
         var smscAccountId = $('#smscAccountId').val();
         var systemId = $('#systemId').val();
         var password = $('#password').val();
@@ -199,12 +230,21 @@
             url: url,
             data: JSON.stringify(data),
             dataType: "JSON",
-            success: function () {
-                $('#modalAdd').modal('hide');
-                window.location.reload();
+            success: function (result) {
+                if (result.valid) {
+                    $('#modalAdd').modal('hide');
+                    window.location.reload();
+                } else {
+                    $.each(result.errors, function (i, error) {
+                        var element = $('#' + error.field + 'MessageError');
+                        element.text(error.defaultMessage);
+                        element.parent().addClass('has-error');
+                    })
+                }
             },
             error: function (errors) {
-
+                $('#modalAdd').modal('hide');
+                alert(JSON.stringify(errors));
             }
         });
     }
