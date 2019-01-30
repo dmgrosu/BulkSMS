@@ -1,7 +1,6 @@
 package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.SmscAccountDao;
-import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.SmscAccount;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class SmscAccountService {

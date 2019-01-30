@@ -5,14 +5,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jsmpp.bean.*;
 
-import java.util.*;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubmitSmDto {
 
-    private final List<OptionalParameter> optionalParameters = new ArrayList<>(0);
+    private String messageId;
     private String serviceType;
     private TypeOfNumber destinationTon;
     private NumberingPlanIndicator destinationNpi;
@@ -30,5 +28,5 @@ public class SubmitSmDto {
     private DataCoding dataCoding;
     private byte smDefaultMsgId;
     private byte[] shortMessage;
-
+    private OptionalParameter[] optionalParameters;
 }
