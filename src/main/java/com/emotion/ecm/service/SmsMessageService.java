@@ -234,10 +234,7 @@ public class SmsMessageService {
     }
 
     private List<String> getNumbersFromGroup(Set<Group> groups) {
-
-        return contactService.getAllContactsByGroups(groups).stream()
-                .map(Contact::getMobilePhone)
-                .collect(Collectors.toList());
+        return contactService.getAllPhoneNumbersByGroups(groups);
     }
 
     private List<String> getNumbersFromFile(AccountData accountData, SmsPreview preview) {

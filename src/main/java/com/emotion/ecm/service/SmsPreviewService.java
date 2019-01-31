@@ -2,12 +2,12 @@ package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.*;
 import com.emotion.ecm.enums.PreviewStatus;
+import com.emotion.ecm.exception.ContactException;
 import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.*;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.util.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;

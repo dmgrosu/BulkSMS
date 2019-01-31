@@ -6,6 +6,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import javax.persistence.*;
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -36,6 +37,6 @@ public class Contact {
     @JoinTable(name = "TB_CONTACT_GROUP",
             joinColumns = @JoinColumn(name = "CONTACT_ID", referencedColumnName = "ID"),
             inverseJoinColumns = @JoinColumn(name = "GROUP_ID", referencedColumnName = "ID"))
-    private Set<Group> groups;
+    private Set<Group> groups = new HashSet<>();
 
 }

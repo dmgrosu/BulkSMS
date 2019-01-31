@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-
 <nav class="navbar navbar-inverse">
     <div class="container-fluid">
         <div class="navbar-header">
@@ -11,6 +9,7 @@
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">Main menu
                     <span class="caret"></span></a>
                 <ul class="dropdown-menu">
+                    <li><a th:href="@{/contact/groupList}">Contacts</a></li>
                     <li><a th:href="@{/preview/list}">SMS Previews</a></li>
                     <li><a th:href="@{/accountData/list}">SMS Files</a></li>
                     <li><a th:href="@{/prefix/list}">Prefixes</a></li>
@@ -30,6 +29,13 @@
 
         </ul>
         <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown">
+                <a href="#" id="lang" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false"><span class="caret"></span></a>
+                <ul class="dropdown-menu" role="menu">
+                    <li><a href="#" onclick="$('#lang').text('EN')">EN</a></li>
+                    <li><a href="#" onclick="$('#lang').text('RU')">RU</a></li>
+                </ul>
+            </li>
             <li><p class="navbar-text" sec:authentication="name">username</p></li>
             <li><a th:href="@{/logout}"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
         </ul>

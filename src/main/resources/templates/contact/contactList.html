@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="en">
+<head>
+    <title>BulkSMS - contacts</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style th:replace="fragments/head"> </style>
+</head>
+
+<body>
+
+<div th:replace="fragments/navbar"></div>
+
+<nav class="navbar navbar-default">
+    <div class="container-fluid">
+        <ul class="nav navbar-nav">
+            <li><a th:href="@{/contact/groupList}">Groups</a></li>
+            <li class="active"><a th:href="@{/contact/contactList}">Contacts</a></li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container-fluid col-md-12">
+
+    <a class="btn btn-info btn-sm" onclick="showModal('add',0)">Add contact</a>
+
+    <table class="table table-condensed table-hover table-bordered">
+        <thead>
+        <tr class="text-center">
+            <th></th>
+            <th>Full name</th>
+            <th>Phone number</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${contacts.isEmpty()}">
+            <td colspan="3" class="text-center"> No contacts found</td>
+        </tr>
+        <tr th:each="contact:${contacts}">
+            <td><input type="checkbox"></td>
+            <td>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${contact.getFullName()}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showModal(\'edit\','+${contact.contactId}+')'"> edit</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showModal(\'delete\','+${contact.contactId}+')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+            </td>
+            <td>
+                <span th:text="${contact.mobilePhone}"></span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div id="modalContact" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 id="modalAddHeader"></h4>
+            </div>
+            <div class="form-horizontal modal-body">
+                <div class="form-group">
+                    <input type="hidden" id="contactId">
+                    <label for="firstName" class="control-label col-sm-3">First name:</label>
+                    <div class="col-sm-9">
+                        <input type="text" id="firstName" required class="form-control">
+                        <p class="error-message" id="firstNameMessageError"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName" class="control-label col-sm-3">Last name:</label>
+                    <div class="col-sm-9">
+                        <input type="text" id="lastName" required class="form-control">
+                        <p class="error-message" id="lastNameMessageError"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="mobilePhone" class="control-label col-sm-3">Mobile phone:</label>
+                    <div class="col-sm-9">
+                        <input type="text" id="mobilePhone" required class="form-control">
+                        <p class="error-message" id="mobilePhoneMessageError"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="groupSelect" class="control-label col-sm-3">Groups:</label>
+                    <div class="col-sm-9">
+                        <select multiple="multiple" class="form-control" name="groupSelect[]" id="groupSelect">
+                        </select>
+                        <p class="error-message" id="groupsMessageError"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="saveContact()">Save</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="modalDeleteHeader"></h4>
+                <input type="hidden" id="deleteId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteContact()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function showModal(type, id) {
+        clearErrors();
+        var modalWindow = $('#modalContact');
+        var contactId = $('#contactId');
+        var firstName = $('#firstName');
+        var lastName = $('#lastName');
+        var mobilePhone = $('#mobilePhone');
+        var modalHeader = $('#modalAddHeader');
+        var modalDeleteHeader = $('#modalDeleteHeader');
+        var deleteId = $('#deleteId');
+        contactId.val(0);
+        firstName.val('');
+        lastName.val('');
+        mobilePhone.val('');
+        modalHeader.text('');
+        modalDeleteHeader.text('');
+        if (type === 'add') {
+            appendAllGroups();
+            modalHeader.text('Add new contact:');
+        } else if (type === 'edit') {
+            modalHeader.text('Edit contact:');
+            renderContactById(id);
+        } else if (type === 'delete') {
+            modalWindow = $('#deleteConfirm');
+            modalDeleteHeader.text('Delete contact?');
+            deleteId.val(id);
+        }
+        modalWindow.modal('show');
+    }
+
+    function appendAllGroups(selectedGroups) {
+        var select = $('#groupSelect');
+        select.multiselect();
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/contact/getAllGroupNames",
+            success: function (result) {
+                var optionData = [];
+                $.each(result, function (i, item) {
+                    var isGroupSelected = false;
+                    if (selectedGroups.indexOf(item.groupId) !== -1) {
+                        isGroupSelected = true;
+                    }
+                    optionData.push({
+                        label: item.groupName,
+                        title: item.groupName,
+                        value: item.groupId,
+                        selected: isGroupSelected
+                    });
+                });
+                select.multiselect('dataprovider', optionData);
+            }
+        });
+    }
+
+    function getSelectedGroups() {
+        var result = [];
+        $('#groupSelect option:selected').each(function() {
+            result.push({"groupId": $(this).val()})
+        });
+        return result;
+    }
+
+    function saveContact() {
+        clearErrors();
+        var data = {
+            "contactId": $('#contactId').val(),
+            "firstName": $('#firstName').val(),
+            "lastName": $('#lastName').val(),
+            "mobilePhone": $('#mobilePhone').val(),
+            "groups": getSelectedGroups()
+        };
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: "/contact/saveContact",
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function (result) {
+                if (result.valid) {
+                    $('#modalContact').modal('hide');
+                    window.location.reload();
+                } else {
+                    $.each(result.errors, function (i, error) {
+                        var element = $('#' + error.field + 'MessageError');
+                        element.text(error.defaultMessage);
+                        element.parent().addClass('has-error');
+                    })
+                }
+            },
+            error: function () {
+                alert('internal server error');
+            }
+        });
+    }
+
+    function renderContactById(id) {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/contact/getContactById",
+            data: {"id": id},
+            success: function (result) {
+                $('#contactId').val(result.contactId);
+                $('#firstName').val(result.firstName);
+                $('#lastName').val(result.lastName);
+                $('#mobilePhone').val(result.mobilePhone);
+                var groupIds = [];
+                $.each(result.groups, function (i, group) {
+                    groupIds.push(group.groupId);
+                });
+                appendAllGroups(groupIds);
+            }
+        })
+    }
+
+    function clearErrors() {
+        var sel = $("p[id*='MessageError']");
+        sel.text('');
+        sel.parent().removeClass('has-error');
+    }
+
+    function deleteContact() {
+        var data = {"contactId": $('#deleteId').val()};
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/contact/deleteContact',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function () {
+                $('#deleteConfirm').modal('hide');
+                alert('internal server error');
+            }
+        });
+    }
+
+</script>
+
+</body>
+
+</html>

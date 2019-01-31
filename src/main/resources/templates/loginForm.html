@@ -1,20 +1,19 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       lang="en">
+
 <head>
     <title>ECM login</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style th:replace="fragments/head"> </style>
 </head>
 
 <body>
 
 <div class="row">
-    <div class="col-md-6 col-md-offset-3">
-        <h2>Login page</h2>
+    <div class="col-md-3 col-md-offset-3">
+        <h3>ECM login form</h3>
         <form th:action="@{/login}" th:method="post">
             <div th:if="${param.error}">
                 <div class="alert alert-danger">
@@ -45,7 +44,7 @@
             </div>
             <div class="form-group">
                 <div class="row">
-                    <div class="col-sm-6 col-sm-offset-3">
+                    <div class="col-sm-8    ">
                         <input type="submit"
                                name="login-submit"
                                id="login-submit"
@@ -60,3 +59,5 @@
 </div>
 
 </body>
+
+</html>

@@ -1,6 +1,7 @@
 package com.emotion.ecm.model.dto;
 
 import com.emotion.ecm.enums.UserStatus;
+import com.emotion.ecm.validation.ValidEmail;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,8 +22,7 @@ public class UserDto {
     private String firstName;
     @NotEmpty
     private String lastName;
-    @Email
-    @NotEmpty
+    @ValidEmail
     private String email;
     @NotEmpty
     private String username;

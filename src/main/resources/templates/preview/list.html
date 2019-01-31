@@ -2,17 +2,17 @@
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       lang="en">
+
 <head>
-    <title>Home</title>
+    <title>BulkSMS - SMS preview</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <style th:replace="fragments/head"> </style>
 </head>
+
 <body>
 
-<div th:replace="fragments/header"></div>
+<div th:replace="fragments/navbar"></div>
 
 <div class="container-fluid col-md-12">
 
@@ -168,3 +168,5 @@
     }
 
 </script>
+
+</html>
