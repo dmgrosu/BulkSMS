@@ -90,6 +90,7 @@
             <label for="smppAddress" class="control-label col-sm-2">Originator:</label>
             <div class="col-sm-10">
                 <select th:field="*{smppAddressId}" class="form-control" id="smppAddress">
+                    <option value="0">choose...</option>
                     <option th:each="item : ${originators}"
                             th:value="${item.smppAddressId}"
                             th:text="${item.address}">
@@ -120,6 +121,7 @@
             <label for="type" class="control-label col-sm-2">Type:</label>
             <div class="col-sm-10">
                 <select th:field="*{typeId}" class="form-control" id="type">
+                    <option value="0">choose...</option>
                     <option th:each="item : ${types}"
                             th:value="${item.id}"
                             th:text="${item.name}">
@@ -132,6 +134,7 @@
             <label for="priority" class="control-label col-sm-2">Priority:</label>
             <div class="col-sm-10">
                 <select th:field="*{priorityId}" class="form-control" id="priority">
+                    <option value="0">choose...</option>
                     <option th:each="item : ${priorities}"
                             th:value="${item.id}"
                             th:text="${item.name}">

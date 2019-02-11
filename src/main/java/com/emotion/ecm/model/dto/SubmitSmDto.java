@@ -29,4 +29,5 @@ public class SubmitSmDto {
     private byte smDefaultMsgId;
     private byte[] shortMessage;
     private OptionalParameter[] optionalParameters;
+
 }

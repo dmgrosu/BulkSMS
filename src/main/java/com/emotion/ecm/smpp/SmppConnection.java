@@ -1,7 +1,7 @@
 package com.emotion.ecm.smpp;
 
 import com.emotion.ecm.exception.SendingException;
-import com.emotion.ecm.model.SmscAccount;
+import com.emotion.ecm.model.dto.SmscAccountDto;
 import com.emotion.ecm.model.dto.SubmitSmDto;
 import lombok.Getter;
 import org.jsmpp.InvalidResponseException;
@@ -28,41 +28,29 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
     private static final String IO_EXCEPTION_CAPTION = "IOException from Address: %s to Address: %s ;";
 
     @Getter
-    private final SmscAccount smscAccount;
+    private final SmscAccountDto smscAccount;
     private final BindParameter bindParameter;
 
-    private boolean isAsync = true;
-    private boolean isShuttedDown;
+    private boolean async = true;
+    private boolean shutDown;
     private ReceivedListener<DeliverSm> dlrReceivedListener;
 
 
-    public SmppConnection(SmscAccount smscAccount) {
+    public SmppConnection(SmscAccountDto smscAccountDto) {
         //TODO: 03-01-2018 Verify if "no sync" is working properly.
         //super(new DefaultPDUSender(new DefaultComposer()), new DefaultPDUReader(), SocketConnectionFactory.getInstance());
         super();
-        this.smscAccount = smscAccount;
-        bindParameter = new BindParameter(BindType.BIND_TRX, smscAccount.getSystemId(), smscAccount.getPassword(),
+        this.smscAccount = smscAccountDto;
+        bindParameter = new BindParameter(BindType.BIND_TRX, smscAccountDto.getSystemId(), smscAccountDto.getPassword(),
                 "ecm", TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, "");
 
         setMessageReceiverListener(this);
-        isShuttedDown = true;
-    }
-
-    private boolean checkConnection() {
-        if (!isShuttedDown && !getSessionState().isBound()) {
-            try {
-                connectAndBind(smscAccount.getIpAddress(), smscAccount.getPort(), bindParameter);
-                return true;
-            } catch (IOException e) {
-                LOGGER.error(String.format("IOException on bind. SmscAccountId: %s; ", smscAccount.getId()), e);
-            }
-        }
-        return false;
+        shutDown = true;
     }
 
     public void sendBulkMessages(SubmitSmDto[] submitSms) throws SendingException {
         if (checkConnection()) {
-            if (isAsync) {
+            if (async) {
                 sendAsync(submitSms);
             } else {
                 sendSync(submitSms);
@@ -70,16 +58,6 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
             return;
         }
         throw new SendingException("Connection is shutdown.");
-    }
-
-    private void sendSync(SubmitSmDto[] submitSms) {
-        for (SubmitSmDto submitSm : submitSms) {
-            sendOneMessage(submitSm);
-        }
-    }
-
-    private void sendAsync(SubmitSmDto[] submitSms) {
-        Arrays.stream(submitSms).parallel().forEach(this::sendOneMessage);
     }
 
     public void sendOneMessage(SubmitSmDto submitSm) {
@@ -120,7 +98,7 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
     }
 
     public void shutdownConnection() {
-        isShuttedDown = true;
+        shutDown = true;
         try {
             sendOutbind(smscAccount.getSystemId(), smscAccount.getPassword());
         } catch (IOException e) {
@@ -159,4 +137,27 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
     public DataSmResult onAcceptDataSm(DataSm dataSm, Session source) throws ProcessRequestException {
         return null;
     }
+
+    private void sendSync(SubmitSmDto[] submitSms) {
+        for (SubmitSmDto submitSm : submitSms) {
+            sendOneMessage(submitSm);
+        }
+    }
+
+    private void sendAsync(SubmitSmDto[] submitSms) {
+        Arrays.stream(submitSms).parallel().forEach(this::sendOneMessage);
+    }
+
+    private boolean checkConnection() {
+        if (!shutDown && !getSessionState().isBound()) {
+            try {
+                connectAndBind(smscAccount.getIpAddress(), smscAccount.getPort(), bindParameter);
+                return true;
+            } catch (IOException e) {
+                LOGGER.error(String.format("IOException on bind. SmscAccountId: %s; ", smscAccount.getSmscAccountId()), e);
+            }
+        }
+        return false;
+    }
+
 }

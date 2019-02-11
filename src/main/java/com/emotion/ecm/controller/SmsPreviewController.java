@@ -7,6 +7,8 @@ import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.service.*;
 import com.emotion.ecm.util.DateUtil;
 import com.emotion.ecm.validation.AjaxResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,13 +19,13 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.text.ParseException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Controller
 @RequestMapping(value = "/preview")
 public class SmsPreviewController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmsPreviewController.class);
 
     private SmsPreviewService smsPreviewService;
     private AppUserService userService;
@@ -52,27 +54,15 @@ public class SmsPreviewController {
     @GetMapping(value = "/list")
     public String showList(Model model) {
         AppUser user = userService.getAuthenticatedUser();
-        List<SmsPreview> smsPreviews = smsPreviewService.getAllByUser(user);
-        List<PreviewDto> previews = new ArrayList<>();
-        if (!smsPreviews.isEmpty()) {
-            previews = smsPreviewService.convertPreviewListToDto(smsPreviews);
-        }
+        List<PreviewDto> previews = smsPreviewService.getAllDtoByUserId(user.getId());
         model.addAttribute("previews", previews);
         return "preview/list";
     }
 
     @GetMapping(value = "/create")
     public String createPreviewForm(Model model) {
-        AppUser currUser = userService.getAuthenticatedUser();
-        Account account = currUser.getAccount();
 
-        PreviewDto previewDto = new PreviewDto();
-        previewDto.setSendDate(DateUtil.formatDate(LocalDateTime.now()));
-        previewDto.setUserId(currUser.getId());
-        previewDto.setTps(account.getTps());
-        previewDto.setUsername(currUser.getUsername());
-
-        addAttributes(previewDto, model, currUser, account);
+        model.addAllAttributes(createPreviewAttributes(null));
 
         return "preview/form";
     }
@@ -81,36 +71,23 @@ public class SmsPreviewController {
     public String savePreview(@Valid @ModelAttribute(name = "preview") PreviewDto previewDto,
                               BindingResult bindingResult, Model model) {
 
-        boolean isValid = true;
-
-        if (bindingResult.hasErrors()) {
-            isValid = false;
-        }
-
         Optional<SmsPreview> optional = smsPreviewService.getByUserIdAndName(previewDto.getUserId(), previewDto.getName());
         if (optional.isPresent()) {
             bindingResult.rejectValue("name", "name.error", "Name is not unique");
-            isValid = false;
         }
 
-        if (isValid) {
-            try {
-                smsPreviewService.createNewPreview(previewDto);
-            } catch (ParseException e) {
-                bindingResult.rejectValue("errors", e.getMessage());
-                isValid = false;
-            }
+        if (bindingResult.hasErrors()) {
+            model.addAllAttributes(createPreviewAttributes(previewDto));
+            return "preview/form";
         }
 
-        if (isValid) {
-            return "redirect:/preview/list";
-        } else {
-//            AppUser currUser = userService.getAuthenticatedUser();
-//            Account account = currUser.getAccount();
-//            model.addAttribute("preview", previewDto);
-//            addAttributes(previewDto, model, currUser, account);
-            return "redirect:/preview/form";
+        try {
+            smsPreviewService.createNewPreview(previewDto);
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
         }
+
+        return "redirect:/preview/list";
     }
 
     @PostMapping(value = "/delete")
@@ -157,13 +134,29 @@ public class SmsPreviewController {
         return result;
     }
 
-    private void addAttributes(PreviewDto previewDto, Model model, AppUser currUser, Account account) {
-        model.addAttribute("preview", previewDto);
-        model.addAttribute("types", typeService.getAll());
-        model.addAttribute("priorities", priorityService.getAll());
-        model.addAttribute("accountDataList", accountDataService.getAllByUser(currUser));
-        model.addAttribute("groupList", contactService.getAllGroupsByUser(currUser));
-        model.addAttribute("originators", smppAddressService.getAllAddressesByAccount(account));
-        model.addAttribute("availableExpTime", expirationTimeService.getAllByAccount(account));
+    private Map<String, Object> createPreviewAttributes(PreviewDto previewDto) {
+
+        AppUser currUser = userService.getAuthenticatedUser();
+        Account account = currUser.getAccount();
+
+        Map<String, Object> result = new HashMap<>();
+
+        if (previewDto == null) {
+            previewDto = new PreviewDto();
+            previewDto.setSendDate(LocalDateTime.now());
+            previewDto.setUserId(currUser.getId());
+            previewDto.setTps(account.getTps());
+            previewDto.setUsername(currUser.getUsername());
+        }
+
+        result.put("preview", previewDto);
+        result.put("types", typeService.getAll());
+        result.put("priorities", priorityService.getAll());
+        result.put("accountDataList", accountDataService.getAllByUser(currUser));
+        result.put("groupList", contactService.getAllGroupsByUser(currUser));
+        result.put("originators", smppAddressService.getAllAddressesByAccount(account));
+        result.put("availableExpTime", expirationTimeService.getAllByAccount(account));
+
+        return result;
     }
 }

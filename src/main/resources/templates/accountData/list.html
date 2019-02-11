@@ -7,51 +7,43 @@
     <title>BulkSMS - files</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style th:replace="fragments/head"> </style></head>
+    <style th:replace="fragments/head"></style>
+</head>
 <body>
 
 <div th:replace="fragments/navbar"></div>
 
-<div class="container">
+<div class="container-fluid col-md-12">
 
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <form class="form-inline" th:action="@{/accountData/create}" th:method="post"
-                  th:object="${accountDataDto}" enctype="multipart/form-data">
+    <div id="alertMessage">
+    </div>
 
-                <div class="alert alert-warning" th:if="${error}">
-                    File saving error!
-                </div>
-
-                <div class="form-group" th:classappend="${#fields.hasErrors('name')}? 'has-error':''">
+    <div class="panel panel-default col-md-6">
+        <div class="panel-body align-left">
+            <form class="form-inline" method="post" enctype="multipart/form-data" id="fileUploadForm">
+                <div class="form-group">
                     <label for="name">Add new file:</label>
-                    <input type="text" class="form-control" id="name"
-                           placeholder="name" th:field="*{name}">
-                    <p class="error-message"
-                       th:each="error: ${#fields.errors('name')}"
-                       th:text="${error}">Validation error</p>
+                    <input type="text" class="form-control" id="name" placeholder="name">
+                    <p class="error-message" id="nameMessageError"></p>
                 </div>
-                <div class="form-group" th:classappend="${#fields.hasErrors('name')}? 'has-error':''">
-                    <input type="file" class="form-control" id="inputFile"
-                           placeholder="file name" th:field="*{file}">
-                    <p class="error-message"
-                       th:each="error: ${#fields.errors('name')}"
-                       th:text="${error}">Validation error</p>
+                <div class="form-group">
+                    <input type="file" class="form-control" id="inputFile" name="file"
+                           placeholder="file name">
+                    <p class="error-message" id="inputFileMessageError"></p>
                 </div>
                 <div class="checkbox">
-                    <label><input type="checkbox" th:field="*{override}"> override if exists</label>
+                    <label><input type="checkbox" id="override"> override if exists</label>
                 </div>
-                <button type="submit" class="btn btn-info">Add</button>
+                <button type="submit" id="btnAddFile" class="btn btn-info">Add</button>
             </form>
         </div>
     </div>
 
-    <table class="table">
+    <table class="table table-bordered table-hover">
         <thead>
         <tr>
             <th>Name</th>
             <th>File name</th>
-            <th></th>
         </tr>
         </thead>
         <tbody>
@@ -59,56 +51,193 @@
             <td colspan="3"> no data available</td>
         </tr>
         <tr th:each="item: ${accountDataList}">
-            <td th:text="${item.name}"> account</td>
-            <td th:text="${item.fileName}"> user</td>
             <td>
-                <button class="btn btn-info dropdown-toggle" type="button" data-toggle="dropdown">...
-                    <span class="caret"></span></button>
-                <ul class="dropdown-menu">
-                    <li><a th:href="@{/accountData/edit}">edit</a></li>
-                    <li><a href="#">show content</a></li>
-                    <li><a href="#">delete</a></li>
-                </ul>
+                <span class="dropdown">
+                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"
+                       th:text="${item.name}"></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"
+                               th:onclick="'showContent('+${item.id}+')'"> show content</a>
+                        </li>
+                        <li><a href="#"
+                               th:onclick="'showDelete('+${item.id}+')'"> delete</a>
+                        </li>
+                    </ul>
+                </span>
+
             </td>
+            <td th:text="${item.fileName}"> file name</td>
         </tr>
         </tbody>
     </table>
 
 </div>
 
-</body>
-
-<div id="successModal" class="modal fade" role="dialog">
+<div id="modalContent" class="modal fade" role="dialog">
     <div class="modal-dialog">
-
-        <!-- Modal content-->
         <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h3 class="modal-title">Import finished</h3>
-            </div>
             <div class="modal-body">
-                <h5 th:text="${'Valid numbers count: '+validDataCount}"></h5>
-                <h5 th:text="${'Invalid numbers count: '+invalidDataCount}"></h5>
+                <div class="form-group">
+                    <textarea id="numberList" rows="10" style="resize: none" readonly class="form-control">
+                    </textarea>
+                </div>
             </div>
-
             <div class="modal-footer">
-                <button type="button" class="btn btn-info" data-dismiss="modal">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
             </div>
-
         </div>
 
     </div>
 </div>
 
+<div id="deleteConfirm" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4> Delete SMS file?</h4>
+                <input type="hidden" id="deleteId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="deleteFile()">Ok</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+
 <script type="text/javascript">
 
-    $(window).on('load', function() {
-        var urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('success')) {
-            $('#successModal').modal('show');
-        }
+    function showContent(id) {
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/accountData/getFileContent",
+            data: {"id": id},
+            success: function (result) {
+                var output = "";
+                $.each(result, function (i, number) {
+                    if (i === 100) {
+                        output += "...";
+                        return false;
+                    }
+                    output += number + '\n';
+                });
+                $('#numberList').text(output);
+            },
+            error: function () {
+                alert("internal server error")
+            }
+        });
+        $('#modalContent').modal('show');
+    }
+
+    function showDelete(id) {
+        $('#deleteId').val(id);
+        $('#deleteConfirm').modal('show');
+    }
+
+    function deleteFile() {
+        var data = {"accountDataId": $('#deleteId').val()};
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/accountData/deleteById',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function () {
+                $('#deleteConfirm').modal('hide');
+                window.location.reload();
+            },
+            error: function () {
+                $('#deleteConfirm').modal('hide');
+                alert('internal server error');
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        $("#btnAddFile").click(function (event) {
+            event.preventDefault();
+            addFile();
+        });
     });
+
+    function addFile() {
+        clearErrors();
+        var data = new FormData($('#fileUploadForm')[0]);
+        data.append("name", $('#name').val());
+        data.append("override", $('#override').prop('checked'));
+
+        $("#btnAddFile").prop("disabled", true);
+
+        $.ajax({
+            type: 'POST',
+            enctype: 'multipart/form-data',
+            url: "/accountData/create",
+            data: data,
+            processData: false,
+            contentType: false,
+            cache: false,
+            success: function (result) {
+                if (!result.valid) {
+                    $.each(result.errors, function (i, error) {
+                        var element = $('#' + error.field + 'MessageError');
+                        element.text(error.defaultMessage);
+                        element.parent().addClass('has-error');
+                    })
+                }
+                $("#btnAddFile").prop("disabled", false);
+                showAlert(result);
+            },
+            error: function () {
+                $("#btnAddFile").prop("disabled", false);
+                alert('internal server error');
+            }
+        });
+    }
+
+    function clearErrors() {
+        var sel = $("p[id*='MessageError']");
+        sel.text('');
+        sel.parent().removeClass('has-error');
+    }
+
+    function showAlert(result) {
+
+        var alertElement = $("#alertMessage");
+
+        alertElement.animate({
+            height: '+=72px'
+        }, 300);
+
+        if (result.valid > 0 && result.invalid == 0) {
+            $('<div class="alert alert-success">' +
+                '<button type="button" class="close" data-dismiss="alert">' +
+                '&times;</button> Uploaded valid numbers: ' + result.valid +
+                '</div>').hide().appendTo('#alertMessage').fadeIn(1000);
+        } else {
+            $('<div class="alert alert-warning">' +
+                '<button type="button" class="close" data-dismiss="alert">' +
+                '&times;</button> Uploaded valid numbers: ' + result.valid + '<br/>' +
+                'NOT uploaded invalid numbers: ' + result.invalid +
+                '</div>').hide().appendTo('#alertMessage').fadeIn(1000);
+        }
+
+        $(".alert").delay(3000).fadeOut(
+            "normal",
+            function () {
+                $(this).remove();
+                window.location.reload();
+            });
+
+        alertElement.delay(4000).animate({
+            height: '-=72px'
+        }, 300);
+
+    }
 
 </script>
 

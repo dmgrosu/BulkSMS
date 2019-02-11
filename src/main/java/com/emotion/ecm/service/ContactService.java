@@ -34,7 +34,7 @@ public class ContactService {
     public List<ContactDto> getAllContactDtoByUserId(AppUser user) {
 
         List<ContactGroupDto> groups = groupDao.findAllDtoByUserId(user.getId());
-        List<Integer> ids = groups.stream().map(ContactGroupDto::getGroupId).collect(Collectors.toList());
+        Set<Integer> ids = groups.stream().map(ContactGroupDto::getGroupId).collect(Collectors.toSet());
         Set<ContactDto> dtoHashSet = new HashSet<>();
         if (!ids.isEmpty()) {
             dtoHashSet.addAll(contactDao.findAllDtoByGroupIds(ids));
@@ -66,8 +66,8 @@ public class ContactService {
         return groupDao.findById(groupId).get();
     }
 
-    public List<String> getAllPhoneNumbersByGroups(Set<Group> groups) {
-        return contactDao.findAllPhoneNumbersByGroups(groups).stream()
+    public List<String> getAllPhoneNumbersByGroups(Set<Integer> groupIds) {
+        return contactDao.findAllPhoneNumbersByGroups(groupIds).stream()
                 .map(ContactDto::getMobilePhone).collect(Collectors.toList());
     }
 

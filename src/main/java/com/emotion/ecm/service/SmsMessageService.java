@@ -3,7 +3,9 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.SmsMessageDao;
 import com.emotion.ecm.enums.MessageStatus;
 import com.emotion.ecm.enums.PreviewStatus;
+import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.*;
+import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.SubmitSmDto;
 import com.emotion.ecm.util.StringUtil;
 import org.jsmpp.bean.*;
@@ -46,19 +48,12 @@ public class SmsMessageService {
         this.accountDataService = accountDataService;
     }
 
-    public List<SubmitSmDto> getAllToBeSendByPreview(List<SmsPreview> previews, SmscAccount smscAccount) {
-
-        List<SubmitSmDto> result = new ArrayList<>();
-
-        for (SmsPreview preview : previews) {
-            List<SmsMessage> messages = getMessagesToSendByPreview(preview, preview.getTps());
-            for (SmsMessage message : messages) {
-                result.add(convertMessageToSubmitSmDto(preview, message, smscAccount));
-            }
-
-        }
-
-        return result;
+    public List<SubmitSmDto> getAllToBeSendByPreview(List<PreviewDto> previews, SmscAccount smscAccount) {
+        return previews.stream()
+                .map(previewDto -> getMessagesToSendByPreview(previewDto, previewDto.getTps()))
+                .flatMap(Collection::stream)
+                .map(message -> convertMessageToSubmitSmDto(message, smscAccount))
+                .collect(Collectors.toList());
     }
 
     public List<SmsMessage> batchSave(List<SmsMessage> messages) {
@@ -69,8 +64,9 @@ public class SmsMessageService {
         return smsMessageDao.getSentDestinationsByPreviewId(previewId);
     }
 
-    private SubmitSmDto convertMessageToSubmitSmDto(SmsPreview preview, SmsMessage message, SmscAccount smscAccount) {
+    private SubmitSmDto convertMessageToSubmitSmDto(SmsMessage message, SmscAccount smscAccount) {
 
+        SmsPreview preview = message.getPreview();
         SmppAddress smppAddress = preview.getSmppAddress();
 
         SubmitSmDto result = new SubmitSmDto();
@@ -101,20 +97,32 @@ public class SmsMessageService {
     }
 
 
-    private List<SmsMessage> getMessagesToSendByPreview(SmsPreview preview, int maxSize) {
+    private List<SmsMessage> getMessagesToSendByPreview(PreviewDto previewDto, int maxSize) {
 
         List<SmsMessage> result = new ArrayList<>();
 
-        List<String> numbersList = getDestinations(preview);
+        if (previewDto == null) {
+            LOGGER.error("previewDto is null");
+            return result;
+        }
+
+        List<String> numbersList = getDestinations(previewDto);
 
         if (numbersList != null && !numbersList.isEmpty()) {
 
-            List<SmsPrefix> prefixes = smsPrefixService.getAllPrefixesByAccount(preview.getUser().getAccount());
+            List<SmsPrefix> prefixes = smsPrefixService.getAllPrefixesByUserId(previewDto.getUserId());
 
-            List<SmsText> smsParts = createSmsParts(preview.getText());
+            List<SmsText> smsParts = createSmsParts(previewDto.getText());
+
+            SmsPreview preview;
+            try {
+                preview = smsPreviewService.getPreviewById(previewDto.getPreviewId());
+            } catch (PreviewException e) {
+                LOGGER.error(e.getMessage());
+                return result;
+            }
 
             Iterator<String> iterator = numbersList.iterator();
-
             SmsMessage message;
             while (iterator.hasNext()) {
 
@@ -142,48 +150,47 @@ public class SmsMessageService {
 
                 iterator.remove();
             }
-
-        }
-
-        if (result.size() > 0) {
-            preview.setPreviewStatus(PreviewStatus.APPROVED);
-            preview.setTotalParts(result.size());
-            smsPreviewService.saveAndFlush(preview);
+            if (result.size() > 0) {
+                preview.setPreviewStatus(PreviewStatus.APPROVED);
+                preview.setRecipientsCount(previewDto.getRecipientsCount());
+                preview.setTotalParts(previewDto.getRecipientsCount() * smsParts.size());
+                smsPreviewService.saveAndFlush(preview);
+            }
         }
 
         return result;
     }
 
-    private List<String> getDestinations(SmsPreview preview) {
+    private List<String> getDestinations(PreviewDto previewDto) {
 
-        List<String> result = destinationsMap.get(preview.getId());
+        List<String> result = destinationsMap.get(previewDto.getPreviewId());
 
         final Set<String> sentDestinations = new HashSet<>();
 
         if (result == null) {
-            if (preview.getSentParts() > 0) {
-                sentDestinations.addAll(getSentDestinationsByPreviewId(preview.getId()));
+            if (previewDto.getTotalSent() > 0) {
+                sentDestinations.addAll(getSentDestinationsByPreviewId(previewDto.getPreviewId()));
             }
             result = new ArrayList<>();
         } else {
-            if (preview.isTextEdited()) {
-                sentDestinations.addAll(getSentDestinationsByPreviewId(preview.getId()));
-                destinationsMap.remove(preview.getId());
+            if (previewDto.isTextEdited()) {
+                sentDestinations.addAll(getSentDestinationsByPreviewId(previewDto.getPreviewId()));
+                destinationsMap.remove(previewDto.getPreviewId());
                 result = new ArrayList<>();
             } else {
                 return result;
             }
         }
 
-        AccountData accountData = preview.getAccountData();
-        Set<Group> groups = preview.getGroups();
-        String phoneNumbers = preview.getPhoneNumbers();
-        if (accountData != null) {
-            result = getNumbersFromFile(accountData, preview).stream()
+        int accountDataId = previewDto.getAccountDataId();
+        Set<Integer> groupIds = previewDto.getGroupIds();
+        String phoneNumbers = previewDto.getPhoneNumbers();
+        if (accountDataId != 0) {
+            result = getNumbersFromFile(previewDto.getAccountDataId()).stream()
                     .filter(s -> !sentDestinations.contains(s))
                     .collect(Collectors.toList());
-        } else if (groups != null && !groups.isEmpty()) {
-            result = getNumbersFromGroup(groups).stream()
+        } else if (groupIds != null && !groupIds.isEmpty()) {
+            result = getNumbersFromGroup(groupIds).stream()
                     .filter(s -> !sentDestinations.contains(s))
                     .collect(Collectors.toList());
         } else if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
@@ -192,7 +199,12 @@ public class SmsMessageService {
                     .collect(Collectors.toList());
         }
 
-        destinationsMap.put(preview.getId(), result);
+        int totalNumbers = result.size();
+
+        if (totalNumbers > 0) {
+            destinationsMap.put(previewDto.getPreviewId(), result);
+            previewDto.setRecipientsCount(totalNumbers);
+        }
 
         return result;
     }
@@ -233,28 +245,17 @@ public class SmsMessageService {
         return result;
     }
 
-    private List<String> getNumbersFromGroup(Set<Group> groups) {
-        return contactService.getAllPhoneNumbersByGroups(groups);
+    private List<String> getNumbersFromGroup(Set<Integer> groupIds) {
+        return contactService.getAllPhoneNumbersByGroups(groupIds);
     }
 
-    private List<String> getNumbersFromFile(AccountData accountData, SmsPreview preview) {
-
+    private List<String> getNumbersFromFile(int accountDataId) {
         List<String> result = new ArrayList<>();
-
         try {
-            Path directory = accountDataService.getAccountPath(preview.getUser());
-            Path fullPath = directory.resolve(accountData.getFileName());
-            BufferedReader reader = Files.newBufferedReader(fullPath);
-            String currLine;
-            while ((currLine = reader.readLine()) != null) {
-                result.add(currLine);
-            }
-            reader.close();
+            result = accountDataService.getNumbersFromFile(accountDataId);
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
-            return result;
         }
-
         return result;
     }
 

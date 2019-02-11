@@ -3,6 +3,7 @@ package com.emotion.ecm.dao;
 import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
+import com.emotion.ecm.model.dto.PreviewDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,18 +18,21 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
 
     Optional<SmsPreview> findByUserIdAndName(int userId, String name);
 
-    @Query("from SmsPreview " +
-            "where user.id in (:userIds) and " +
-            "sendDate <= :date and deleted = false and " +
-            "previewStatus in (:statuses) " +
-            "order by smsPriority asc")
-    List<SmsPreview> findPreviewsForBroadcast(@Param("userIds") List<Integer> userIds,
-                                              @Param("date") LocalDateTime currDate,
-                                              @Param("statuses") List<PreviewStatus> statuses);
+    @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
+            "(p.id, p.sendDate, p.text, p.tps, p.previewStatus, p.phoneNumbers, p.smsType.id, " +
+            "p.smsPriority.id, p.smppAddress.id, p.user.id, p.expirationTime.id, p.dlr, " +
+            "p.accountData.id) " +
+            "from SmsPreview p " +
+            "where p.user.id in (?1) and " +
+            "sendDate <= ?2 and deleted = false and " +
+            "previewStatus in (?3) ")
+    List<PreviewDto> findPreviewDtoForBroadcast(List<Integer> userIds, LocalDateTime currDate,
+                                                List<PreviewStatus> statuses);
 
-    List<SmsPreview> findAllByUserAccountIdInAndDeletedAndPreviewStatusInAndSendDateBefore(List<Integer> usersIds,
-                                                                                           boolean deleted,
-                                                                                           List<PreviewStatus> statuses,
-                                                                                           LocalDateTime currDate);
-
+    @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
+            "(p.id, p.name, p.sendDate, p.tps, p.recipientsCount, p.totalParts, p.sentParts, " +
+            "p.previewStatus, p.smsPriority.name, p.smppAddress.address, p.user.username) " +
+            "from SmsPreview p " +
+            "where p.user.id = ?1")
+    List<PreviewDto> findAllDtoByUserId(int id);
 }

@@ -1,11 +1,13 @@
 package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.AccountDao;
+import com.emotion.ecm.dao.AppUserDao;
 import com.emotion.ecm.dao.SmsPrefixDao;
 import com.emotion.ecm.dao.SmsPrefixGroupDao;
 import com.emotion.ecm.exception.AccountException;
 import com.emotion.ecm.exception.PrefixException;
 import com.emotion.ecm.model.Account;
+import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPrefix;
 import com.emotion.ecm.model.SmsPrefixGroup;
 import com.emotion.ecm.model.dto.PrefixDto;
@@ -25,13 +27,15 @@ public class SmsPrefixService {
     private AccountDao accountDao;
     private SmsPrefixDao prefixDao;
     private SmsPrefixGroupDao groupDao;
+    private AppUserDao userDao;
 
     @Autowired
     public SmsPrefixService(AccountDao accountDao, SmsPrefixDao prefixDao,
-                            SmsPrefixGroupDao groupDao) {
+                            SmsPrefixGroupDao groupDao, AppUserDao userDao) {
         this.accountDao = accountDao;
         this.prefixDao = prefixDao;
         this.groupDao = groupDao;
+        this.userDao = userDao;
     }
 
     public Optional<SmsPrefix> getByGroupIdAndPrefix(int groupId, String prefix) {
@@ -164,4 +168,16 @@ public class SmsPrefixService {
         return result;
     }
 
+    public List<SmsPrefix> getAllPrefixesByUserId(int userId) {
+
+        List<SmsPrefix> result = new ArrayList<>();
+        Optional<AppUser> optional = userDao.findById(userId);
+        if (!optional.isPresent()) {
+            return result;
+        }
+
+        result = getAllPrefixesByAccount(optional.get().getAccount());
+
+        return result;
+    }
 }

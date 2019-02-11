@@ -39,6 +39,10 @@ public class UserDto {
     public UserDto() {
     }
 
+    public UserDto(int userId) {
+        this.userId = userId;
+    }
+
     public UserDto(int id, String firstName, String lastName, String email,
                    String username, UserStatus status, int accountId, String accountName) {
         this.userId = id;

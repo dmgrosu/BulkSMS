@@ -1,13 +1,13 @@
 package com.emotion.ecm.service;
 
-import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.SmsPreview;
+import com.emotion.ecm.model.dto.AccountDto;
+import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import com.emotion.ecm.model.dto.SubmitSmDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -48,10 +48,10 @@ public class EsmeService {
             return;
         }
 
-        List<Account> allAccounts = accountService.getAll();
+        List<AccountDto> allAccounts = accountService.getAllDto();
 
         for (Integer smscAccountId : messageQueue.keySet()) {
-            List<SmsPreview> previews = smsPreviewService.getPreviewsForBroadcast(allAccounts);
+            List<PreviewDto> previews = smsPreviewService.getPreviewsForBroadcast(allAccounts);
             if (previews.isEmpty()) {
                 continue;
             }

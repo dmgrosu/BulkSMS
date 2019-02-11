@@ -9,7 +9,7 @@ import java.util.Set;
 
 public interface SmsMessageDao extends JpaRepository<SmsMessage, Long> {
 
-    @Query("select distinct destAddress from SmsMessage where preview.id = :previewId and messageStatus > 0")
-    Set<String> getSentDestinationsByPreviewId(@Param("previewId") long previewId);
+    @Query("select distinct destAddress from SmsMessage where preview.id = ?1 and messageStatus > 0")
+    Set<String> getSentDestinationsByPreviewId(long previewId);
 
 }

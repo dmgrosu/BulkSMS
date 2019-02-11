@@ -6,22 +6,27 @@ import com.emotion.ecm.model.dto.AccountDataDto;
 import com.emotion.ecm.service.AccountDataService;
 import com.emotion.ecm.service.AppUserService;
 import com.emotion.ecm.service.StorageService;
+import com.emotion.ecm.validation.AjaxResponseBody;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Controller
 @RequestMapping(value = "/accountData")
 public class AccountDataController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AccountDataController.class);
 
     private AccountDataService accountDataService;
     private AppUserService userService;
@@ -45,50 +50,71 @@ public class AccountDataController {
     }
 
     @PostMapping(value = "/create")
-    public String handleFileUpload(@ModelAttribute(name = "accountDataDto") AccountDataDto accountDataDto,
-                                   BindingResult bindingResult, Model model) {
+    @ResponseBody
+    public ResponseEntity<?> handleFileUpload(@Valid @ModelAttribute AccountDataDto accountDataDto,
+                                             BindingResult bindingResult) {
 
-        String resultString = "success";
+        List<FieldError> allErrors = new ArrayList<>();
+        AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
         if (bindingResult.hasErrors()) {
-            resultString = "error";
+            result.setValid(false);
+            allErrors.addAll(bindingResult.getFieldErrors());
         }
 
         AppUser user = userService.getAuthenticatedUser();
-        Map<String, Integer> storageResult = new HashMap<>();
-        try {
-            String fileName = accountDataDto.getFile().getOriginalFilename();
-            Optional<AccountData> optionalAccountData = accountDataService.
-                    getByNameAndFileNameAndUser(accountDataDto.getName(), fileName, user);
-            if (optionalAccountData.isPresent()) {
-                if (!accountDataDto.isOverride()) {
-                    model.addAttribute("accountDataDto", accountDataDto);
-                    bindingResult.rejectValue("name", "name.error", "name is not unique");
-                    return "redirect:/accountData/list?error";
+        String fileName = accountDataDto.getFile().getOriginalFilename();
+        Optional<AccountData> optionalAccountData = accountDataService.
+                getByNameAndFileNameAndUser(accountDataDto.getName(), fileName, user);
+        if (optionalAccountData.isPresent()) {
+            if (!accountDataDto.isOverride()) {
+                result.setValid(false);
+                allErrors.add(new FieldError("accountDataDto", "name", "name is not unique"));
+            }
+        }
+
+        Map<String, Integer> storageResult;
+        if (result.isValid()) {
+            try {
+                Path directory = accountDataService.getAccountPath(user);
+                Path fullPath = directory.resolve(fileName);
+                storageResult = storageService.storeAccountData(fullPath, accountDataDto.getFile());
+                if (storageResult.get("valid") > 0) {
+                    accountDataService.saveNewAccountData(accountDataDto, user);
                 }
+            } catch (IOException e) {
+                LOGGER.error(e.getMessage());
+                return ResponseEntity.notFound().build();
             }
-            Path directory = accountDataService.getAccountPath(user);
-            Path fullPath = directory.resolve(fileName);
-            storageResult = storageService.storeAccountData(fullPath, accountDataDto.getFile());
-            if (storageResult.get("valid") > 0) {
-                accountDataService.saveNewAccountData(accountDataDto, user);
-            }
-
-        } catch (IOException e) {
-            resultString = "error";
+        } else {
+            return ResponseEntity.ok(result);
         }
 
-        model.addAttribute("validDataCount", storageResult.get("valid"));
-        model.addAttribute("invalidDataCount", storageResult.get("invalid"));
-
-        List<AccountData> accountDataList = accountDataService.getAllByUser(user);
-        model.addAttribute("accountDataList", accountDataList);
-        model.addAttribute("accountDataDto", accountDataDto);
-
-        if (resultString.equals("error")) {
-            model.addAttribute("error", true);
-        }
-
-        return "redirect:/accountData/list?" + resultString;
+        return ResponseEntity.ok(storageResult);
     }
+
+    @GetMapping(value = "/getFileContent")
+    @ResponseBody
+    public ResponseEntity<?> getFileContent(@RequestParam(name = "id") int accountDataId) {
+        try {
+            List<String> numbersList = accountDataService.getNumbersFromFile(accountDataId);
+            return ResponseEntity.ok(numbersList);
+        } catch (IOException e1) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e2) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping(value = "/deleteById")
+    @ResponseBody
+    public ResponseEntity<?> delete(@RequestBody AccountDataDto dto) {
+        try {
+            accountDataService.deleteById(dto.getAccountDataId());
+            return ResponseEntity.ok(dto);
+        } catch (Exception ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }

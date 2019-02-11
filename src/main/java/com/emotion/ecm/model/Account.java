@@ -28,7 +28,7 @@ public class Account {
     @Column(name = "TPS")
     private short tps;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMSC_ACCOUNT_ID")
     private SmscAccount smscAccount;
 

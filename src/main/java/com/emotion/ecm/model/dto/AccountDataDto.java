@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 @Data
@@ -12,7 +13,9 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 public class AccountDataDto {
 
-    @NotNull
+    private int accountDataId;
+
+    @NotEmpty
     private String name;
 
     @NotNull

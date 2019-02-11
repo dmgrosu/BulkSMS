@@ -10,6 +10,9 @@ import java.util.Optional;
 
 public interface AppUserDao extends JpaRepository<AppUser, Integer> {
 
+    @Query("select u from AppUser u " +
+            "join fetch u.roles r " +
+            "where u.username = ?1")
     Optional<AppUser> findByUsername(String username);
 
     Optional<AppUser> findByEmail(String email);
@@ -18,5 +21,8 @@ public interface AppUserDao extends JpaRepository<AppUser, Integer> {
             "(u.id, u.firstName, u.lastName, u.email, u.username, u.status, u.account.id, u.account.name) " +
             "from AppUser u")
     List<UserDto> findAllDto();
+
+    @Query(value = "select u.id from AppUser u where u.account.id in (?1)")
+    List<Integer> findAllIdByAccountIds(List<Integer> accountIds);
 
 }

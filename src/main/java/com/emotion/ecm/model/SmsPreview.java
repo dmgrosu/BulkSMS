@@ -65,27 +65,27 @@ public class SmsPreview {
     @Column(name = "TEXT_EDITED")
     private boolean textEdited;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID")
     private AppUser user;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMS_PRIORITY_ID")
     private SmsPriority smsPriority;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMS_TYPE_ID")
     private SmsType smsType;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "EXPIRATION_TIME_ID")
     private ExpirationTime expirationTime;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMPP_ADDRESS_ID")
     private SmppAddress smppAddress;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ACCOUNT_DATA_ID")
     private AccountData accountData;
 

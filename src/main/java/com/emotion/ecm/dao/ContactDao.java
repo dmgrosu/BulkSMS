@@ -22,13 +22,14 @@ public interface ContactDao extends JpaRepository<Contact, Integer> {
             "from Contact c " +
             "join c.groups g " +
             "where g.id in (?1)")
-    List<ContactDto> findAllDtoByGroupIds(List<Integer> groupIds);
+    List<ContactDto> findAllDtoByGroupIds(Set<Integer> groupIds);
 
     @Query("select new com.emotion.ecm.model.dto.ContactDto" +
             "(c.id, c.mobilePhone) " +
             "from Contact c " +
-            "where c.groups = ?1")
-    List<ContactDto> findAllPhoneNumbersByGroups(Set<Group> groups);
+            "join c.groups g " +
+            "where g.id in (?1)")
+    List<ContactDto> findAllPhoneNumbersByGroups(Set<Integer> groupIds);
 
     @Query("select new com.emotion.ecm.model.dto.ContactDto" +
             "(c.id, c.firstName, c.lastName, c.mobilePhone) " +

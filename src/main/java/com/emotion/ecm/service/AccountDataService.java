@@ -3,7 +3,6 @@ package com.emotion.ecm.service;
 import com.emotion.ecm.dao.AccountDataDao;
 import com.emotion.ecm.model.AccountData;
 import com.emotion.ecm.model.AppUser;
-import com.emotion.ecm.model.ExpirationTime;
 import com.emotion.ecm.model.dto.AccountDataDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,8 +36,8 @@ public class AccountDataService {
         return accountDataDao.findAllByUser(user);
     }
 
-    public Optional<AccountData> getByNameAndUser(AppUser user, String name) {
-        return accountDataDao.findByNameAndUser(name, user);
+    public Optional<AccountData> getById(int accountDataId) {
+        return accountDataDao.findById(accountDataId);
     }
 
     public Optional<AccountData> getByNameAndFileNameAndUser(String name, String fileName, AppUser user) {
@@ -62,6 +63,37 @@ public class AccountDataService {
         LOGGER.info(String.format("%s: new account data saved", user.getUsername()));
     }
 
+    public List<String> getNumbersFromFile(int accountDataId) throws IOException {
+
+        List<String> result = new ArrayList<>();
+
+        try {
+            Optional<AccountData> optional = getById(accountDataId);
+            if (optional.isPresent()) {
+                AccountData accountData = optional.get();
+                Path directory = getAccountPath(accountData.getUser());
+                Path fullPath = directory.resolve(accountData.getFileName());
+                BufferedReader reader = Files.newBufferedReader(fullPath);
+                String currLine;
+                while ((currLine = reader.readLine()) != null) {
+                    result.add(currLine);
+                }
+                reader.close();
+            }
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage());
+            throw new IOException();
+        } catch (Exception ex) {
+            LOGGER.error(ex.getMessage());
+        }
+
+        return result;
+    }
+
+    public void deleteById(int accountDataId) {
+        accountDataDao.deleteById(accountDataId);
+    }
+
     private AccountData convertDtoToAccountData(AccountDataDto accountDataDto, AppUser user) {
         AccountData result = new AccountData();
         result.setFileName(accountDataDto.getFile().getOriginalFilename());
@@ -70,7 +102,4 @@ public class AccountDataService {
         return result;
     }
 
-    public AccountData getById(int accountDataId) {
-        return accountDataDao.getOne(accountDataId);
-    }
 }

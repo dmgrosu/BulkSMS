@@ -15,7 +15,7 @@ public interface AccountDao extends JpaRepository<Account, Integer> {
             "from Account a")
     List<AccountDto> getAllDto();
 
-    @Query("select new com.emotion.ecm.model.dto.AccountDto(a.id, a.name) " +
+    @Query("select new com.emotion.ecm.model.dto.AccountDto(a.id, a.name, a.smscAccount.id) " +
             "from Account a")
     List<AccountDto> getAllNames();
 
