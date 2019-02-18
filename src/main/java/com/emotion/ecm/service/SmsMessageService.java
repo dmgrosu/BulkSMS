@@ -213,7 +213,7 @@ public class SmsMessageService {
 
         List<SmsText> result = new ArrayList<>();
 
-        List<String> smsParts = StringUtil.createSmsParts(initialText, false);
+        List<String> smsParts = StringUtil.createSmsParts(initialText);
         short partNumber = 1;
         for (String smsPart : smsParts) {
             result.add(smsTextService.getByTextAndParts(smsPart, partNumber, (short) smsParts.size()));
@@ -239,6 +239,7 @@ public class SmsMessageService {
         if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
             String[] arr = phoneNumbers.split(",");
             result = Arrays.stream(arr)
+                    .filter(s -> !s.isEmpty())
                     .collect(Collectors.toList());
         }
 

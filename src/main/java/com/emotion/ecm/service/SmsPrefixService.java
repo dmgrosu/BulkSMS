@@ -58,18 +58,6 @@ public class SmsPrefixService {
         return groupDao.findDtoById(groupId);
     }
 
-    public boolean isMsisdnValidForAccount(Account account, String msisdn) {
-        if (account == null || msisdn == null) {
-            return false;
-        }
-        for (SmsPrefix smsPrefix : getAllPrefixesByAccount(account)) {
-            if (msisdn.startsWith(smsPrefix.getPrefix())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public List<SmsPrefix> getAllPrefixesByAccount(Account account) {
 
         List<SmsPrefix> result = new ArrayList<>();
@@ -88,7 +76,6 @@ public class SmsPrefixService {
                         prefixDao.findAllByPrefixGroup(group)))
                 .collect(Collectors.toList());
     }
-
 
     @Transactional
     public SmsPrefix savePrefix(SmsPrefix prefix) {

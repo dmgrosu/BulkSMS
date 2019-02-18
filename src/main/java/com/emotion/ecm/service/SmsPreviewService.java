@@ -7,16 +7,23 @@ import com.emotion.ecm.model.*;
 import com.emotion.ecm.model.dto.AccountDto;
 import com.emotion.ecm.model.dto.ContactGroupDto;
 import com.emotion.ecm.model.dto.PreviewDto;
+import com.emotion.ecm.model.dto.PreviewGroupDto;
+import com.emotion.ecm.util.StringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 public class SmsPreviewService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmsPreviewService.class);
 
     private SmsPreviewDao smsPreviewDao;
     private AppUserDao userDao;
@@ -47,19 +54,6 @@ public class SmsPreviewService {
         return smsPreviewDao.findByUserIdAndName(userId, name);
     }
 
-    public SmsPreview createNewPreview(PreviewDto dto) {
-
-        SmsPreview result = convertDtoToPreview(dto);
-
-        LocalDateTime now = LocalDateTime.now();
-        result.setCreateDate(now);
-        result.setUpdateDate(now);
-
-        result = save(result);
-
-        return result;
-    }
-
     public void deleteById(long previewId) {
         smsPreviewDao.deleteById(previewId);
     }
@@ -69,7 +63,9 @@ public class SmsPreviewService {
         List<PreviewDto> result = new ArrayList<>();
 
         List<Integer> accountIds = accounts.stream()
-                .map(AccountDto::getAccountId).collect(Collectors.toList());
+                .map(AccountDto::getAccountId)
+                .collect(Collectors.toList());
+
         if (accountIds.isEmpty()) {
             return result;
         }
@@ -89,13 +85,10 @@ public class SmsPreviewService {
             return result;
         }
 
-        for (PreviewDto previewDto : result) {
-            Set<Integer> groupIds = contactService.getAllGroupDtoByUserId(previewDto.getUserId(), false)
-                    .stream()
-                    .map(ContactGroupDto::getGroupId)
-                    .collect(Collectors.toSet());
-            previewDto.setGroupIds(groupIds);
-        }
+        result.stream()
+                .filter(previewDto -> previewDto.getPhoneNumbers() == null || previewDto.getPhoneNumbers().isEmpty())
+                .filter(previewDto -> previewDto.getAccountDataId() == null)
+                .forEach(previewDto -> previewDto.setGroupIds(findAllGroupIdsByPreviewId(previewDto.getPreviewId())));
 
         return result;
     }
@@ -106,7 +99,24 @@ public class SmsPreviewService {
     }
 
     public SmsPreview save(PreviewDto dto) {
-        return save(convertDtoToPreview(dto));
+
+        SmsPreview result = convertDtoToPreview(dto);
+
+        if (dto.getPreviewId() == 0) { // new preview
+            LocalDateTime now = LocalDateTime.now();
+            result.setCreateDate(now);
+            result.setUpdateDate(now);
+            try {
+                result.setRecipientsCount(getPreviewRecipientsCount(dto));
+            } catch (IOException e) {
+                LOGGER.error(e.getMessage());
+            }
+            result.setTotalParts(getPreviewTotalParts(dto.getText(), result.getRecipientsCount()));
+        } else { // edit existing preview
+            result.setUpdateDate(LocalDateTime.now());
+        }
+
+        return save(result);
     }
 
     @Transactional
@@ -127,10 +137,10 @@ public class SmsPreviewService {
             SmsPreview preview = optional.get();
             preview.setPreviewStatus(previewDto.getStatus());
             smsPreviewDao.saveAndFlush(preview);
+            LOGGER.info(String.format("SmsPreview[id=%s] status changed to %s", preview.getId(), preview.getPreviewStatus()));
         } else {
             throw new PreviewException(String.format("preview with id %s not found", previewId));
         }
-
     }
 
     public List<PreviewDto> getAllDtoByUserId(int id) {
@@ -142,26 +152,45 @@ public class SmsPreviewService {
                 .orElseThrow(() -> new PreviewException(String.format("preview with id %s not found", previewId)));
     }
 
+    public PreviewDto getPreviewDtoById(long previewId) throws PreviewException {
+        PreviewDto result = smsPreviewDao.findDtoById(previewId);
+        if (result == null) {
+            throw new PreviewException(String.format("preview with id %s not found", previewId));
+        }
+        String phoneNumbers = result.getPhoneNumbers();
+        if (phoneNumbers == null || phoneNumbers.isEmpty()) {
+            if (result.getAccountDataId() == null) {
+                result.setGroupIds(findAllGroupIdsByPreviewId(previewId));
+            }
+        }
+        return result;
+    }
+
     private SmsPreview convertDtoToPreview(PreviewDto dto) {
 
-        SmsPreview result = new SmsPreview();
+        SmsPreview result = smsPreviewDao.findById(dto.getPreviewId()).orElseGet(SmsPreview::new);
 
         result.setUser(userDao.getOne(dto.getUserId()));
         result.setName(dto.getName());
         result.setExpirationTime(expirationTimeService.getById(dto.getExpirationTimeId()));
-        result.setPreviewStatus(PreviewStatus.CREATED);
+        if (dto.getStatus() == null || dto.getStatus() == PreviewStatus.CREATED) {
+            result.setPreviewStatus(PreviewStatus.CREATED);
+        }
         result.setText(dto.getText());
         result.setSmsType(typeDao.getOne(dto.getTypeId()));
         result.setSmsPriority(priorityDao.getOne(dto.getPriorityId()));
         result.setTps(dto.getTps());
         result.setSmppAddress(smppAddressDao.getOne(dto.getSmppAddressId()));
         result.setDlr(dto.isDlr());
-        result.setPhoneNumbers(dto.getPhoneNumbers());
-        if (dto.getAccountDataId() != 0) {
+        String phoneNumbers = dto.getPhoneNumbers();
+        if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
+            result.setPhoneNumbers(phoneNumbers);
+        }
+        if (dto.getAccountDataId() != null) {
             accountDataService.getById(dto.getAccountDataId()).ifPresent(result::setAccountData);
         }
         Set<Integer> groupIds = dto.getGroupIds();
-        if (groupIds != null && groupIds.isEmpty()) {
+        if (groupIds != null && !groupIds.isEmpty()) {
             Set<Group> groups = groupIds.stream()
                     .map(groupId -> contactService.getGroupById(groupId))
                     .collect(Collectors.toSet());
@@ -174,6 +203,35 @@ public class SmsPreviewService {
         result.setSentParts(dto.getTotalSent());
 
         return result;
+    }
+
+    private int getPreviewRecipientsCount(PreviewDto dto) throws IOException {
+        Integer accountDataId = dto.getAccountDataId();
+        Set<Integer> groupIds = dto.getGroupIds();
+        String phoneNumbers = dto.getPhoneNumbers();
+        if (accountDataId != null) {
+            return accountDataService.getNumbersCountFromFile(accountDataId);
+        } else if (groupIds != null && !groupIds.isEmpty()) {
+            return contactService.getAllPhoneNumbersByGroups(groupIds).size();
+        } else if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
+            String[] arr = phoneNumbers.split(",");
+            return (int) Arrays.stream(arr)
+                    .filter(s -> !s.trim().isEmpty())
+                    .count();
+        }
+        return 0;
+    }
+
+    private int getPreviewTotalParts(String text, int recipientsCount) {
+        int partsCount = StringUtil.createSmsParts(text).size();
+        return recipientsCount * partsCount;
+    }
+
+    private Set<Integer> findAllGroupIdsByPreviewId(long previewId) {
+        PreviewGroupDto dto = smsPreviewDao.findPreviewGroupDtoById(previewId);
+        return dto.getGroups().stream()
+                .map(Group::getId)
+                .collect(Collectors.toSet());
     }
 
 }

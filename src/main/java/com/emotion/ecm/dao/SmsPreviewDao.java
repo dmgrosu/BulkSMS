@@ -4,9 +4,9 @@ import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
+import com.emotion.ecm.model.dto.PreviewGroupDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,8 +31,19 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
             "(p.id, p.name, p.sendDate, p.tps, p.recipientsCount, p.totalParts, p.sentParts, " +
-            "p.previewStatus, p.smsPriority.name, p.smppAddress.address, p.user.username) " +
+            "p.previewStatus, p.smsPriority.name, p.smppAddress.address, p.user.username, " +
+            "p.expirationTime.name) " +
             "from SmsPreview p " +
             "where p.user.id = ?1")
     List<PreviewDto> findAllDtoByUserId(int id);
+
+    @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
+            "(p.id, p.name, p.createDate, p.sendDate, p.text, p.tps, p.previewStatus, p.phoneNumbers, " +
+            "p.smsType.id, p.smsPriority.id, p.smppAddress.id, p.user.id, " +
+            "p.expirationTime.id, p.dlr, p.accountData.id, p.recipientsCount, p.totalParts) " +
+            "from SmsPreview p " +
+            "where p.id = ?1")
+    PreviewDto findDtoById(long previewId);
+
+    PreviewGroupDto findPreviewGroupDtoById(long previewId);
 }

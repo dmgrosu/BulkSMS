@@ -7,7 +7,7 @@
     <title>BulkSMS - SMS preview</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style th:replace="fragments/head"> </style>
+    <style th:replace="fragments/head"></style>
 </head>
 
 <body>
@@ -25,6 +25,7 @@
             <th>Name</th>
             <th>Send date</th>
             <th>Priority</th>
+            <th>Validity</th>
             <th>TPS</th>
             <th>Originator</th>
             <th>Recipients</th>
@@ -43,7 +44,7 @@
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown"
                        th:text="${item.name}"></a>
                     <ul class="dropdown-menu">
-                        <li><a th:href="@{/preview/edit}"> edit</a>
+                        <li><a th:href="@{/preview/edit(id=${item.previewId})}"> edit</a>
                         </li>
                         <li><a href="#"
                                th:onclick="'showDeleteModal('+${item.previewId}+')'"> delete</a>
@@ -53,6 +54,7 @@
             </td>
             <td th:text="${item.sendDate}"> send date</td>
             <td th:text="${item.priority}"> priority</td>
+            <td th:text="${item.expirationTimeName}"> expiration time</td>
             <td th:text="${item.tps}"> tps</td>
             <td th:text="${item.smppAddress}"></td>
             <td th:text="${item.recipientsCount}"> recipients count</td>

@@ -1,11 +1,12 @@
 package com.emotion.ecm.controller;
 
+import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.Account;
 import com.emotion.ecm.model.AppUser;
+import com.emotion.ecm.model.SmsPrefix;
 import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.service.*;
-import com.emotion.ecm.util.DateUtil;
 import com.emotion.ecm.validation.AjaxResponseBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -35,12 +35,14 @@ public class SmsPreviewController {
     private ContactService contactService;
     private SmppAddressService smppAddressService;
     private ExpirationTimeService expirationTimeService;
+    private SmsPrefixService smsPrefixService;
 
     @Autowired
     public SmsPreviewController(SmsPreviewService smsPreviewService, AppUserService userService,
                                 SmsTypeService typeService, SmsPriorityService priorityService,
                                 ContactService contactService, AccountDataService accountDataService,
-                                SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService) {
+                                SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService,
+                                SmsPrefixService smsPrefixService) {
         this.smsPreviewService = smsPreviewService;
         this.userService = userService;
         this.typeService = typeService;
@@ -49,6 +51,7 @@ public class SmsPreviewController {
         this.accountDataService = accountDataService;
         this.smppAddressService = smppAddressService;
         this.expirationTimeService = expirationTimeService;
+        this.smsPrefixService = smsPrefixService;
     }
 
     @GetMapping(value = "/list")
@@ -67,13 +70,38 @@ public class SmsPreviewController {
         return "preview/form";
     }
 
-    @PostMapping(value = "/create")
+    @GetMapping(value = "/edit")
+    public String editPreview(@RequestParam(name = "id") long previewId, Model model) {
+
+        PreviewDto previewDto = null;
+        try {
+            previewDto = smsPreviewService.getPreviewDtoById(previewId);
+        } catch (PreviewException e) {
+            LOGGER.warn(e.getMessage());
+        }
+        model.addAllAttributes(createPreviewAttributes(previewDto));
+
+        return "preview/form";
+    }
+
+    @PostMapping(value = "/save")
     public String savePreview(@Valid @ModelAttribute(name = "preview") PreviewDto previewDto,
                               BindingResult bindingResult, Model model) {
 
-        Optional<SmsPreview> optional = smsPreviewService.getByUserIdAndName(previewDto.getUserId(), previewDto.getName());
-        if (optional.isPresent()) {
-            bindingResult.rejectValue("name", "name.error", "Name is not unique");
+        if (previewDto.getPreviewId() == 0) { // new preview
+            Optional<SmsPreview> optional = smsPreviewService.getByUserIdAndName(previewDto.getUserId(), previewDto.getName());
+            if (optional.isPresent()) {
+                bindingResult.rejectValue("name", "name.error", "Name is not unique");
+            }
+            String phoneNumbers = previewDto.getPhoneNumbers();
+            if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
+                if (!validatePhoneNumbers(phoneNumbers)) {
+                    bindingResult.rejectValue("phoneNumbers", "phoneNumbers.error", "Phone numbers are not valid");
+                }
+            }
+            if (!isNumbersSourceValid(previewDto)) {
+                bindingResult.rejectValue("accountDataId", "accountDataId.error", "Numbers source is not selected!");
+            }
         }
 
         if (bindingResult.hasErrors()) {
@@ -82,7 +110,8 @@ public class SmsPreviewController {
         }
 
         try {
-            smsPreviewService.createNewPreview(previewDto);
+            SmsPreview preview = smsPreviewService.save(previewDto);
+            LOGGER.info(String.format("Preview [id=%s, name=%s] was saved", preview.getId(), preview.getName()));
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
         }
@@ -159,4 +188,34 @@ public class SmsPreviewController {
 
         return result;
     }
+
+    private boolean validatePhoneNumbers(String phoneNumbers) {
+        if (phoneNumbers == null || phoneNumbers.isEmpty()) {
+            return false;
+        }
+        AppUser currUser = userService.getAuthenticatedUser();
+        List<SmsPrefix> allPrefixesByAccount = smsPrefixService.getAllPrefixesByAccount(currUser.getAccount());
+
+        for (String number : phoneNumbers.split(",")) {
+            boolean found = false;
+            for (SmsPrefix smsPrefix : allPrefixesByAccount) {
+                if (number.trim().startsWith(smsPrefix.getPrefix())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isNumbersSourceValid(PreviewDto previewDto) {
+        return previewDto.getAccountDataId() != null ||
+                (previewDto.getPhoneNumbers() != null && !previewDto.getPhoneNumbers().isEmpty()) ||
+                !previewDto.getGroupIds().isEmpty();
+    }
+
 }

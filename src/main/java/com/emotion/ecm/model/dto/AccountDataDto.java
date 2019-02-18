@@ -23,4 +23,5 @@ public class AccountDataDto {
 
     private boolean override;
     private String fileName;
+    private int linesCount;
 }

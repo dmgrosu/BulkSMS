@@ -28,6 +28,9 @@ public class AccountData {
     @Column(name = "FILE_NAME")
     private String fileName;
 
+    @Column(name = "LINES_COUNT")
+    private int linesCount;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID")
     private AppUser user;

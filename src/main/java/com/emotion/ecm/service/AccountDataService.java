@@ -90,15 +90,42 @@ public class AccountDataService {
         return result;
     }
 
+    public int getNumbersCountFromFile(int accountDataId) throws IOException {
+
+        int result = 0;
+
+        try {
+            Optional<AccountData> optional = getById(accountDataId);
+            if (optional.isPresent()) {
+                AccountData accountData = optional.get();
+                Path directory = getAccountPath(accountData.getUser());
+                Path fullPath = directory.resolve(accountData.getFileName());
+                BufferedReader reader = Files.newBufferedReader(fullPath);
+                while (reader.readLine() != null) {
+                    result++;
+                }
+                reader.close();
+            }
+        } catch (IOException e) {
+            LOGGER.error(e.getMessage());
+            throw new IOException();
+        } catch (Exception ex) {
+            LOGGER.error(ex.getMessage());
+        }
+
+        return result;
+    }
+
     public void deleteById(int accountDataId) {
         accountDataDao.deleteById(accountDataId);
     }
 
     private AccountData convertDtoToAccountData(AccountDataDto accountDataDto, AppUser user) {
-        AccountData result = new AccountData();
+        AccountData result = accountDataDao.findById(accountDataDto.getAccountDataId()).orElseGet(AccountData::new);
         result.setFileName(accountDataDto.getFile().getOriginalFilename());
         result.setName(accountDataDto.getName());
         result.setUser(user);
+        result.setLinesCount(accountDataDto.getLinesCount());
         return result;
     }
 

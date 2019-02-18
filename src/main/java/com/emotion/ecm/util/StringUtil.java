@@ -6,7 +6,9 @@ import java.util.List;
 
 public class StringUtil {
 
-    public static List<String> createSmsParts(String initialText, boolean isEncoded) throws IllegalArgumentException {
+    public static List<String> createSmsParts(String initialText) throws IllegalArgumentException {
+
+        boolean isEncoded = false;
 
         List<String> result = new ArrayList<>();
 

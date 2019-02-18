@@ -80,6 +80,7 @@ public class AccountDataController {
                 Path fullPath = directory.resolve(fileName);
                 storageResult = storageService.storeAccountData(fullPath, accountDataDto.getFile());
                 if (storageResult.get("valid") > 0) {
+                    accountDataDto.setLinesCount(storageResult.get("valid"));
                     accountDataService.saveNewAccountData(accountDataDto, user);
                 }
             } catch (IOException e) {
