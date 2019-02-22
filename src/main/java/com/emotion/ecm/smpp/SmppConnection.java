@@ -16,9 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 public class SmppConnection extends SMPPSession implements MessageReceiverListener {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(SmppConnection.class);
 
     private static final String PDU_EXCEPTION_CAPTION = "PduException message from Address: %s to Address: %s ;";
@@ -31,76 +33,71 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
     private final SmscAccountDto smscAccount;
     private final BindParameter bindParameter;
 
-    private boolean async = true;
-    private boolean shutDown;
+    private boolean isBound;
     private ReceivedListener<DeliverSm> dlrReceivedListener;
 
-
-    public SmppConnection(SmscAccountDto smscAccountDto) {
+    SmppConnection(SmscAccountDto smscAccountDto) {
         //TODO: 03-01-2018 Verify if "no sync" is working properly.
-        //super(new DefaultPDUSender(new DefaultComposer()), new DefaultPDUReader(), SocketConnectionFactory.getInstance());
         super();
         this.smscAccount = smscAccountDto;
         bindParameter = new BindParameter(BindType.BIND_TRX, smscAccountDto.getSystemId(), smscAccountDto.getPassword(),
                 "ecm", TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, "");
 
         setMessageReceiverListener(this);
-        shutDown = true;
     }
 
-    public void sendBulkMessages(SubmitSmDto[] submitSms) throws SendingException {
-        if (checkConnection()) {
-            if (async) {
-                sendAsync(submitSms);
-            } else {
-                sendSync(submitSms);
-            }
-            return;
+    void sendBulkMessages(SubmitSmDto[] messagePack) throws SendingException {
+        if (!bind()) {
+            throw new SendingException("Connection is shutdown.");
         }
-        throw new SendingException("Connection is shutdown.");
+        if (smscAccount.isAsynchronous()) {
+            sendAsync(messagePack);
+        } else {
+            sendSync(messagePack);
+        }
     }
 
-    public void sendOneMessage(SubmitSmDto submitSm) {
+    private void sendOneMessage(SubmitSmDto dto) {
         try {
             String messageId = submitShortMessage(
-                    submitSm.getServiceType(),
-                    submitSm.getSourceTon(),
-                    submitSm.getSourceNpi(),
-                    submitSm.getSourceNumber(),
-                    submitSm.getDestinationTon(),
-                    submitSm.getDestinationNpi(),
-                    submitSm.getDestinationNumber(),
-                    submitSm.getEsmClass(),
-                    submitSm.getProtocolId(),
-                    submitSm.getPriorityFlag(),
-                    submitSm.getScheduleDeliveryTime(),
-                    submitSm.getValidityPeriod(),
-                    submitSm.getRegisteredDelivery(),
-                    submitSm.getReplaceIfPresentFlag(),
-                    submitSm.getDataCoding(),
-                    submitSm.getSmDefaultMsgId(),
-                    submitSm.getShortMessage(),
-                    submitSm.getOptionalParameters()
+                    dto.getServiceType(),
+                    dto.getSourceTon(),
+                    dto.getSourceNpi(),
+                    dto.getSourceNumber(),
+                    dto.getDestinationTon(),
+                    dto.getDestinationNpi(),
+                    dto.getDestinationNumber(),
+                    dto.getEsmClass(),
+                    dto.getProtocolId(),
+                    dto.getPriorityFlag(),
+                    dto.getScheduleDeliveryTime(),
+                    dto.getValidityPeriod(),
+                    dto.getRegisteredDelivery(),
+                    dto.getReplaceIfPresentFlag(),
+                    dto.getDataCoding(),
+                    dto.getSmDefaultMsgId(),
+                    dto.getShortMessage(),
+                    dto.getOptionalParameters()
             );
-
-            submitSm.setMessageId(messageId);
+            dto.setMessageId(messageId);
+            dto.setSubmitRespTime(LocalDateTime.now());
         } catch (PDUException e) {
-            LOGGER.warn(String.format(PDU_EXCEPTION_CAPTION, submitSm.getSourceNumber(), submitSm.getDestinationNumber()), e);
+            LOGGER.warn(String.format(PDU_EXCEPTION_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         } catch (ResponseTimeoutException e) {
-            LOGGER.warn(String.format(RESPONSE_TIMEOUT_CAPTION, submitSm.getSourceNumber(), submitSm.getDestinationNumber()), e);
+            LOGGER.warn(String.format(RESPONSE_TIMEOUT_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         } catch (InvalidResponseException e) {
-            LOGGER.warn(String.format(INVALID_RESPONSE_CAPTION, submitSm.getSourceNumber(), submitSm.getDestinationNumber()), e);
+            LOGGER.warn(String.format(INVALID_RESPONSE_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         } catch (NegativeResponseException e) {
-            LOGGER.warn(String.format(NEGATIVE_RESPONSE_CAPTION, submitSm.getSourceNumber(), submitSm.getDestinationNumber()), e);
+            LOGGER.warn(String.format(NEGATIVE_RESPONSE_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         } catch (IOException e) {
-            LOGGER.warn(String.format(IO_EXCEPTION_CAPTION, submitSm.getSourceNumber(), submitSm.getDestinationNumber()), e);
+            LOGGER.warn(String.format(IO_EXCEPTION_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         }
     }
 
     public void shutdownConnection() {
-        shutDown = true;
         try {
             sendOutbind(smscAccount.getSystemId(), smscAccount.getPassword());
+            isBound = getSessionState().isBound();
         } catch (IOException e) {
             LOGGER.info("IOException on outbind: ", e);
         }
@@ -144,20 +141,26 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
         }
     }
 
-    private void sendAsync(SubmitSmDto[] submitSms) {
-        Arrays.stream(submitSms).parallel().forEach(this::sendOneMessage);
+    private void sendAsync(SubmitSmDto[] messagePack) {
+        Arrays.stream(messagePack).parallel().forEach(this::sendOneMessage);
+
     }
 
-    private boolean checkConnection() {
-        if (!shutDown && !getSessionState().isBound()) {
+    private boolean bind() {
+        if (isBound) {
+            return true;
+        } else {
+            isBound = getSessionState().isBound();
+        }
+        if (!isBound) {
             try {
                 connectAndBind(smscAccount.getIpAddress(), smscAccount.getPort(), bindParameter);
-                return true;
+                isBound = getSessionState().isBound();
             } catch (IOException e) {
                 LOGGER.error(String.format("IOException on bind. SmscAccountId: %s; ", smscAccount.getSmscAccountId()), e);
             }
         }
-        return false;
+        return isBound;
     }
 
 }

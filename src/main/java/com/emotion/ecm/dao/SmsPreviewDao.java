@@ -6,6 +6,7 @@ import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.PreviewGroupDto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
@@ -24,8 +25,8 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
             "p.accountData.id) " +
             "from SmsPreview p " +
             "where p.user.id in (?1) and " +
-            "sendDate <= ?2 and deleted = false and " +
-            "previewStatus in (?3) ")
+            "p.sendDate <= ?2 and p.deleted = false and " +
+            "p.previewStatus in (?3) and p.finishDate is null")
     List<PreviewDto> findPreviewDtoForBroadcast(List<Integer> userIds, LocalDateTime currDate,
                                                 List<PreviewStatus> statuses);
 
@@ -46,4 +47,12 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
     PreviewDto findDtoById(long previewId);
 
     PreviewGroupDto findPreviewGroupDtoById(long previewId);
+
+    @Modifying
+    @Query("update SmsPreview p set p.finishDate = ?2, p.previewStatus = ?3 where p.id = ?1")
+    void updatePreviewToCompleted(long previewId, LocalDateTime finishDate, PreviewStatus newStatus);
+
+    @Modifying
+    @Query("update SmsPreview p set p.sentParts = p.sentParts + ?2, p.previewStatus = ?3 where p.id = ?1")
+    void updatePreviewSentCountById(long previewId, int sentCount, PreviewStatus newStatus);
 }

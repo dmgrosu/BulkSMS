@@ -29,4 +29,7 @@ public interface SmscAccountDao  extends JpaRepository<SmscAccount, Integer> {
             "where a.id = ?1")
     SmscAccountDto findDtoById(int id) throws SmscAccountException;
 
+    @Query("select a.tps from SmscAccount a where a.id = ?1")
+    Integer findTpsById(int id);
+
 }

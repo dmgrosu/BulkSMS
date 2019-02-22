@@ -40,7 +40,7 @@ public class AppUser {
     @Enumerated(value = EnumType.STRING)
     private UserStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "ACCOUNT_ID")
     private Account account;
 

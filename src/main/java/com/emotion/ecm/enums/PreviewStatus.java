@@ -1,13 +1,11 @@
 package com.emotion.ecm.enums;
 
 public enum PreviewStatus {
-
     CREATED,
     SAVED,
     APPROVED,
-    GENERATING,
+    REJECTED,
     SENDING,
     STOPPED,
     FINISHED
-
 }

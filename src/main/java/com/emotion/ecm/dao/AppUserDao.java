@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface AppUserDao extends JpaRepository<AppUser, Integer> {
 
@@ -22,7 +23,8 @@ public interface AppUserDao extends JpaRepository<AppUser, Integer> {
             "from AppUser u")
     List<UserDto> findAllDto();
 
-    @Query(value = "select u.id from AppUser u where u.account.id in (?1)")
-    List<Integer> findAllIdByAccountIds(List<Integer> accountIds);
+    @Query(value = "select new com.emotion.ecm.model.dto.UserDto(u.id, u.account.id) " +
+            "from AppUser u where u.account.id in (?1)")
+    List<UserDto> findAllDtoByAccountIds(Set<Integer> accountIds);
 
 }

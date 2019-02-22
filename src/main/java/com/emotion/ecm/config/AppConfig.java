@@ -22,9 +22,9 @@ public class AppConfig implements WebMvcConfigurer {
     @Bean
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(200);
-        executor.setMaxPoolSize(500);
-        executor.setQueueCapacity(1000);
+        executor.setCorePoolSize(20);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(100);
         executor.initialize();
         return executor;
     }

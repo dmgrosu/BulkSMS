@@ -2,6 +2,7 @@ package com.emotion.ecm.model;
 
 import com.emotion.ecm.enums.MessageStatus;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.SQLDelete;
@@ -26,9 +27,6 @@ public class SmsMessage {
     @Column(name = "DEST_ADDR")
     private String destAddress;
 
-    @Column(name = "SUBM_DATE")
-    private LocalDateTime submitDate;
-
     @Column(name = "SUBM_RESP_DATE")
     private LocalDateTime submitRespDate;
 
@@ -45,6 +43,7 @@ public class SmsMessage {
     @Column(name = "DELETED")
     private boolean deleted;
 
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMS_PREVIEW_ID")
     private SmsPreview preview;
@@ -53,10 +52,12 @@ public class SmsMessage {
     @JoinColumn(name = "SMS_TEXT_ID")
     private SmsText smsText;
 
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMS_PREFIX_ID")
     private SmsPrefix smsPrefix;
 
+    @EqualsAndHashCode.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "SMSC_ACCOUNT_ID")
     private SmscAccount smscAccount;

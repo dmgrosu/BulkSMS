@@ -5,10 +5,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jsmpp.bean.*;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SubmitSmDto {
+
+    private long id;
+    private LocalDateTime submitRespTime;
 
     private String messageId;
     private String serviceType;

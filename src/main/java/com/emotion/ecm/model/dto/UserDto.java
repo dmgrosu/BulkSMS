@@ -39,8 +39,9 @@ public class UserDto {
     public UserDto() {
     }
 
-    public UserDto(int userId) {
+    public UserDto(int userId, int accountId) {
         this.userId = userId;
+        this.accountId = accountId;
     }
 
     public UserDto(int id, String firstName, String lastName, String email,

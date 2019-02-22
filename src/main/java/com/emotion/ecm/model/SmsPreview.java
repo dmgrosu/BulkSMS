@@ -34,6 +34,9 @@ public class SmsPreview {
     @Column(name = "SEND_DATE")
     private LocalDateTime sendDate;
 
+    @Column(name = "FINISH_DATE")
+    private LocalDateTime finishDate;
+
     @Column(name = "TEXT")
     private String text;
 

@@ -1,6 +1,5 @@
 package com.emotion.ecm.service;
 
-import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.AccountDto;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.SmscAccountDto;
@@ -8,6 +7,8 @@ import com.emotion.ecm.model.dto.SubmitSmDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -17,6 +18,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 public class EsmeService {
+
+    @Value("${ecm.messagePackQueueSize}")
+    public int queueSize;
 
     private SmsPreviewService smsPreviewService;
     private SmsMessageService smsMessageService;
@@ -36,7 +40,7 @@ public class EsmeService {
         this.messageQueue = new HashMap<>();
     }
 
-    //@Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 5000)
     public void fillMessageQueue() {
 
         if (messageQueue == null || messageQueue.isEmpty()) {
@@ -50,14 +54,89 @@ public class EsmeService {
 
         List<AccountDto> allAccounts = accountService.getAllDto();
 
-        for (Integer smscAccountId : messageQueue.keySet()) {
-            List<PreviewDto> previews = smsPreviewService.getPreviewsForBroadcast(allAccounts);
+        for (ConcurrentLinkedQueue<SubmitSmDto[]> queue : messageQueue.values()) {
+
+            if (queue.size() >= queueSize) {
+                continue;
+            }
+
+            Map<PreviewDto, Integer> previews = smsPreviewService.getPreviewsForBroadcast(allAccounts);
             if (previews.isEmpty()) {
                 continue;
             }
-            List<SubmitSmDto> submitSmList = smsMessageService.getAllToBeSendByPreview(previews,
-                    smscAccountService.getById(smscAccountId));
+
+            previews = balanceTpsByPreviews(previews);
+
+            SubmitSmDto[] messagePack = smsMessageService.createMessagePackFromPreviewList(previews);
+            if (messagePack.length > 0) {
+                queue.add(messagePack);
+            }
         }
+    }
+
+    public SubmitSmDto[] getMessagePackFromQueue(int smscAccountId) {
+
+        SubmitSmDto[] result = null;
+
+        if (messageQueue.containsKey(smscAccountId)) {
+            result = messageQueue.get(smscAccountId).poll();
+        }
+
+        return result;
+    }
+
+    /**
+     * Balances tps between broadcasting previews according to max allowed tps from SMSC
+     *
+     * @param previews - map of previews for broadcast(key) and SMSCAccountId(value)
+     * @return new map: key - preview with adjusted tps, value - SMSCAccountId
+     */
+    private Map<PreviewDto, Integer> balanceTpsByPreviews(final Map<PreviewDto, Integer> previews) {
+
+        Map<Integer, Integer> tpsBySmscInitial = new HashMap<>();
+
+        for (Map.Entry<PreviewDto, Integer> previewEntry : previews.entrySet()) {
+            int tpsFromPreview = previewEntry.getKey().getTps();
+            Integer smscAccountId = previewEntry.getValue();
+            if (tpsBySmscInitial.containsKey(smscAccountId)) {
+                int newTpsValue = tpsBySmscInitial.get(smscAccountId) + tpsFromPreview;
+                tpsBySmscInitial.put(smscAccountId, newTpsValue);
+            } else {
+                tpsBySmscInitial.put(smscAccountId, tpsFromPreview);
+            }
+        }
+
+        // key - SMSCAccountId
+        // value - tps ratio
+        Map<Integer, Double> ratioMap = new HashMap<>();
+
+        for (Integer smscId : tpsBySmscInitial.keySet()) {
+            Integer maxAvailableTps = smscAccountService.getTpsById(smscId);
+            Integer initialTps = tpsBySmscInitial.get(smscId);
+            if (maxAvailableTps < initialTps) {
+                ratioMap.put(smscId, Double.valueOf(maxAvailableTps) / initialTps);
+            } else {
+                ratioMap.put(smscId, 1.0);
+            }
+        }
+
+        tpsBySmscInitial = null;
+
+        Map<PreviewDto, Integer> result = new HashMap<>();
+
+        for (Map.Entry<PreviewDto, Integer> previewEntry : previews.entrySet()) {
+            int smscAccountId = previewEntry.getValue();
+            double tpsPreviewRatio = ratioMap.get(smscAccountId);
+            short currentTpsForPreview = previewEntry.getKey().getTps();
+            Double newTpsForPreview = currentTpsForPreview * tpsPreviewRatio;
+            PreviewDto previewDto = previewEntry.getKey();
+            previewDto.setTps(newTpsForPreview.shortValue());
+            result.put(previewDto, smscAccountId);
+        }
+
+        ratioMap = null;
+
+        return result;
     }
 
     private void initQueue() {

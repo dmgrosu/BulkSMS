@@ -2,10 +2,13 @@ package com.emotion.ecm.service;
 
 import com.emotion.ecm.dao.SmsMessageDao;
 import com.emotion.ecm.enums.MessageStatus;
-import com.emotion.ecm.enums.PreviewStatus;
+import com.emotion.ecm.exception.ExpirationTimeException;
 import com.emotion.ecm.exception.PreviewException;
+import com.emotion.ecm.exception.SmppAddressException;
 import com.emotion.ecm.model.*;
+import com.emotion.ecm.model.dto.DeliveryDto;
 import com.emotion.ecm.model.dto.PreviewDto;
+import com.emotion.ecm.model.dto.SmppAddressDto;
 import com.emotion.ecm.model.dto.SubmitSmDto;
 import com.emotion.ecm.util.StringUtil;
 import org.jsmpp.bean.*;
@@ -13,11 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,44 +34,109 @@ public class SmsMessageService {
     private SmsTextService smsTextService;
     private ContactService contactService;
     private AccountDataService accountDataService;
+    private SmppAddressService smppAddressService;
+    private ExpirationTimeService expirationTimeService;
 
     private final ConcurrentHashMap<Long, List<String>> destinationsMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, DeliveryDto> dlrWaitingList = new ConcurrentHashMap<>();
 
     @Autowired
     public SmsMessageService(SmsMessageDao smsMessageDao, SmsPrefixService smsPrefixService,
                              SmsPreviewService smsPreviewService, SmsTextService smsTextService,
-                             ContactService contactService, AccountDataService accountDataService) {
+                             ContactService contactService, AccountDataService accountDataService,
+                             SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService) {
         this.smsMessageDao = smsMessageDao;
         this.smsPrefixService = smsPrefixService;
         this.smsPreviewService = smsPreviewService;
         this.smsTextService = smsTextService;
         this.contactService = contactService;
         this.accountDataService = accountDataService;
+        this.smppAddressService = smppAddressService;
+        this.expirationTimeService = expirationTimeService;
     }
 
-    public List<SubmitSmDto> getAllToBeSendByPreview(List<PreviewDto> previews, SmscAccount smscAccount) {
-        return previews.stream()
-                .map(previewDto -> getMessagesToSendByPreview(previewDto, previewDto.getTps()))
-                .flatMap(Collection::stream)
-                .map(message -> convertMessageToSubmitSmDto(message, smscAccount))
-                .collect(Collectors.toList());
-    }
-
+    @Transactional
     public List<SmsMessage> batchSave(List<SmsMessage> messages) {
         return smsMessageDao.saveAll(messages);
     }
 
-    public Set<String> getSentDestinationsByPreviewId(long previewId) {
+    @Transactional
+    public void updateMessagesToSentFromMessagePack(SubmitSmDto[] messagePack) {
+        if (messagePack == null) {
+            LOGGER.error("message pack is null");
+            return;
+        }
+        RegisteredDelivery defaultRegDlr = new RegisteredDelivery(SMSCDeliveryReceipt.DEFAULT);
+        for (SubmitSmDto dto : messagePack) {
+            if (dto.getId() > 0) {
+                if (dto.getMessageId() != null && !dto.getMessageId().isEmpty()) {
+                    if (dto.getRegisteredDelivery() != defaultRegDlr) {
+                        addToDeliveryWaitingList(dto);
+                    }
+                    smsMessageDao.updateMessageIdById(dto.getId(),
+                            dto.getMessageId(), dto.getSubmitRespTime(), MessageStatus.SENT);
+                }
+            }
+        }
+    }
+
+    public
+
+    SubmitSmDto[] createMessagePackFromPreviewList(Map<PreviewDto, Integer> previews) {
+
+        List<SubmitSmDto> result = new ArrayList<>();
+
+        if (previews == null || previews.isEmpty()) {
+            LOGGER.error("preview map is null or empty");
+            return new SubmitSmDto[0];
+        }
+
+        for (Map.Entry<PreviewDto, Integer> previewEntry : previews.entrySet()) {
+            PreviewDto preview = previewEntry.getKey();
+            try {
+                SmppAddressDto smppAddress = smppAddressService.getDtoById(preview.getSmppAddressId());
+                String expTimeValue = expirationTimeService.getExpirationTimeValueById(preview.getExpirationTimeId());
+                List<SmsMessage> messages = getMessagesToSendByPreview(preview, preview.getTps());
+                if (messages.size() > 0) {
+                    List<SmsMessage> savedMessages = batchSave(messages);
+                    if (savedMessages.size() > 0) {
+                        smsPreviewService.updatePreviewSentCountById(preview.getPreviewId(), messages.size());
+                        result.addAll(messages.stream()
+                                .map((message) ->
+                                        convertMessageToSubmitSmDto(message, smppAddress,
+                                                expTimeValue, preview.isDlr()))
+                                .collect(Collectors.toList()));
+                    }
+                } else {
+                    smsPreviewService.updatePreviewToCompletedById(preview.getPreviewId());
+                }
+            } catch (SmppAddressException | ExpirationTimeException ex) {
+                LOGGER.error(ex.getMessage());
+            }
+        }
+
+        return result.toArray(new SubmitSmDto[0]);
+    }
+
+    private void addToDeliveryWaitingList(SubmitSmDto dto) {
+        DeliveryDto deliveryDto = new DeliveryDto(dto.getId(), dto.getMessageId());
+        dlrWaitingList.put(dto.getMessageId(), deliveryDto);
+    }
+
+    private Set<String> getSentDestinationsByPreviewId(long previewId) {
         return smsMessageDao.getSentDestinationsByPreviewId(previewId);
     }
 
-    private SubmitSmDto convertMessageToSubmitSmDto(SmsMessage message, SmscAccount smscAccount) {
-
-        SmsPreview preview = message.getPreview();
-        SmppAddress smppAddress = preview.getSmppAddress();
+    private SubmitSmDto convertMessageToSubmitSmDto(SmsMessage message, SmppAddressDto smppAddress,
+                                                    String expTimeValue, boolean dlr) {
 
         SubmitSmDto result = new SubmitSmDto();
 
+        if (message == null || smppAddress == null) {
+            return result;
+        }
+
+        result.setId(message.getId());
         result.setServiceType("");
         result.setDestinationTon(TypeOfNumber.ALPHANUMERIC);
         result.setDestinationNpi(NumberingPlanIndicator.UNKNOWN);
@@ -79,12 +145,12 @@ public class SmsMessageService {
         result.setSourceNpi(smppAddress.getNpi());
         result.setSourceNumber(smppAddress.getAddress());
         result.setEsmClass(new ESMClass());
-        result.setProtocolId((byte) 0);
+        result.setProtocolId((byte) 0); // to set sms type here
         result.setPriorityFlag((byte) 0);
         result.setScheduleDeliveryTime("");
-        result.setValidityPeriod(preview.getExpirationTime().getValue());
+        result.setValidityPeriod(expTimeValue);
         SMSCDeliveryReceipt deliveryReceipt = SMSCDeliveryReceipt.DEFAULT;
-        if (preview.isDlr()) {
+        if (dlr) {
             deliveryReceipt = SMSCDeliveryReceipt.SUCCESS_FAILURE;
         }
         result.setRegisteredDelivery(new RegisteredDelivery(deliveryReceipt));
@@ -92,10 +158,10 @@ public class SmsMessageService {
         result.setDataCoding(new GeneralDataCoding());
         result.setSmDefaultMsgId((byte) 0);
         result.setShortMessage(message.getSmsText().getText().getBytes());
+        result.setOptionalParameters(new OptionalParameter[0]);
 
         return result;
     }
-
 
     private List<SmsMessage> getMessagesToSendByPreview(PreviewDto previewDto, int maxSize) {
 
@@ -107,55 +173,57 @@ public class SmsMessageService {
         }
 
         List<String> numbersList = getDestinations(previewDto);
+        if (numbersList == null) {
+            LOGGER.warn("numbers list is null");
+            return result;
+        }
+        if (numbersList.size() == 0) {
+            return result;
+        }
 
-        if (numbersList != null && !numbersList.isEmpty()) {
+        List<SmsPrefix> prefixes = smsPrefixService.getAllPrefixesByUserId(previewDto.getUserId());
 
-            List<SmsPrefix> prefixes = smsPrefixService.getAllPrefixesByUserId(previewDto.getUserId());
+        List<SmsText> smsParts = createSmsParts(previewDto.getText());
+        if (smsParts == null || smsParts.size() == 0) {
+            LOGGER.warn("sms parts list is null or empty");
+            return result;
+        }
 
-            List<SmsText> smsParts = createSmsParts(previewDto.getText());
+        SmsPreview preview;
+        try {
+            preview = smsPreviewService.getPreviewById(previewDto.getPreviewId());
+        } catch (PreviewException e) {
+            LOGGER.error(e.getMessage());
+            return result;
+        }
 
-            SmsPreview preview;
-            try {
-                preview = smsPreviewService.getPreviewById(previewDto.getPreviewId());
-            } catch (PreviewException e) {
-                LOGGER.error(e.getMessage());
-                return result;
-            }
+        Iterator<String> iterator = numbersList.iterator();
+        SmsMessage message;
+        while (iterator.hasNext()) {
 
-            Iterator<String> iterator = numbersList.iterator();
-            SmsMessage message;
-            while (iterator.hasNext()) {
+            String destAddr = iterator.next();
 
-                String destAddr = iterator.next();
-
-                SmsPrefix prefix = getPrefixForMsisdn(prefixes, destAddr);
-                boolean stop = false;
-                for (int i = 0; i < smsParts.size(); i++) {
-                    SmsText smsPart = smsParts.get(i);
-                    if (result.size() >= maxSize && i == smsParts.size() - 1) {
-                        stop = true;
-                        break;
-                    }
-                    message = new SmsMessage();
-                    message.setDestAddress(destAddr);
-                    message.setMessageStatus(MessageStatus.READY);
-                    message.setPreview(preview);
-                    message.setSmsText(smsPart);
-                    message.setSmsPrefix(prefix);
-                    result.add(message);
-                }
-                if (stop) {
+            SmsPrefix prefix = getPrefixForMsisdn(prefixes, destAddr);
+            boolean stop = false;
+            for (int i = 0; i < smsParts.size(); i++) {
+                SmsText smsPart = smsParts.get(i);
+                if (result.size() >= maxSize && i == smsParts.size() - 1) {
+                    stop = true;
                     break;
                 }
+                message = new SmsMessage();
+                message.setDestAddress(destAddr);
+                message.setMessageStatus(MessageStatus.READY);
+                message.setPreview(preview);
+                message.setSmsText(smsPart);
+                message.setSmsPrefix(prefix);
+                result.add(message);
+            }
+            if (stop) {
+                break;
+            }
 
-                iterator.remove();
-            }
-            if (result.size() > 0) {
-                preview.setPreviewStatus(PreviewStatus.APPROVED);
-                preview.setRecipientsCount(previewDto.getRecipientsCount());
-                preview.setTotalParts(previewDto.getRecipientsCount() * smsParts.size());
-                smsPreviewService.saveAndFlush(preview);
-            }
+            iterator.remove();
         }
 
         return result;
@@ -239,7 +307,7 @@ public class SmsMessageService {
         if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
             String[] arr = phoneNumbers.split(",");
             result = Arrays.stream(arr)
-                    .filter(s -> !s.isEmpty())
+                    .filter(s -> !s.trim().isEmpty())
                     .collect(Collectors.toList());
         }
 

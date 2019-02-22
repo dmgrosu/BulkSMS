@@ -60,6 +60,10 @@ public class SmscAccountService {
         return smscAccountDao.findDtoById(smscAccountId);
     }
 
+    public Integer getTpsById(int smscAccountId) {
+        return smscAccountDao.findTpsById(smscAccountId);
+    }
+
     private SmscAccount convertDtoToSmscAccount(SmscAccountDto dto) {
 
         Optional<SmscAccount> optional = smscAccountDao.findById(dto.getSmscAccountId());

@@ -4,10 +4,7 @@ import com.emotion.ecm.dao.*;
 import com.emotion.ecm.enums.PreviewStatus;
 import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.model.*;
-import com.emotion.ecm.model.dto.AccountDto;
-import com.emotion.ecm.model.dto.ContactGroupDto;
-import com.emotion.ecm.model.dto.PreviewDto;
-import com.emotion.ecm.model.dto.PreviewGroupDto;
+import com.emotion.ecm.model.dto.*;
 import com.emotion.ecm.util.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,37 +55,58 @@ public class SmsPreviewService {
         smsPreviewDao.deleteById(previewId);
     }
 
-    public List<PreviewDto> getPreviewsForBroadcast(List<AccountDto> accounts) {
+    /**
+     * @param accounts list of Account
+     * @return map: key - PreviewDto, value - id of smscAccount
+     */
+    public Map<PreviewDto, Integer> getPreviewsForBroadcast(List<AccountDto> accounts) {
 
-        List<PreviewDto> result = new ArrayList<>();
+        Map<PreviewDto, Integer> result = new HashMap<>();
 
-        List<Integer> accountIds = accounts.stream()
-                .map(AccountDto::getAccountId)
-                .collect(Collectors.toList());
+        // key - accountId
+        // value - SMSCAccountId
+        Map<Integer, Integer> accountSmsc = accounts.stream()
+                .collect(Collectors.toMap(AccountDto::getAccountId, AccountDto::getSmscAccountId, (a, b) -> b));
+
+        Set<Integer> accountIds = accountSmsc.keySet();
 
         if (accountIds.isEmpty()) {
             return result;
         }
 
-        List<Integer> userIds = userDao.findAllIdByAccountIds(accountIds);
-        if (userIds.isEmpty()) {
+        List<UserDto> userList = userDao.findAllDtoByAccountIds(accountIds);
+        if (userList.isEmpty()) {
             return result;
         }
+
+        // key - userId
+        // value - SMSCAccountId
+        Map<Integer, Integer> userSmsc = new HashMap<>();
+        for (UserDto userDto : userList) {
+            userSmsc.put(userDto.getUserId(), accountSmsc.get(userDto.getAccountId()));
+        }
+
+        List<Integer> userIds = userList.stream()
+                .map(UserDto::getUserId)
+                .collect(Collectors.toList());
 
         List<PreviewStatus> statuses = new ArrayList<>();
         statuses.add(PreviewStatus.APPROVED);
         statuses.add(PreviewStatus.SENDING);
 
-        result = smsPreviewDao.findPreviewDtoForBroadcast(userIds, LocalDateTime.now(), statuses);
-
-        if (result.isEmpty()) {
-            return result;
-        }
-
-        result.stream()
+        List<PreviewDto> previewDtoList = smsPreviewDao.findPreviewDtoForBroadcast(userIds, LocalDateTime.now(), statuses);
+        previewDtoList.stream()
                 .filter(previewDto -> previewDto.getPhoneNumbers() == null || previewDto.getPhoneNumbers().isEmpty())
                 .filter(previewDto -> previewDto.getAccountDataId() == null)
                 .forEach(previewDto -> previewDto.setGroupIds(findAllGroupIdsByPreviewId(previewDto.getPreviewId())));
+
+        if (previewDtoList.isEmpty()) {
+            return result;
+        }
+
+        for (PreviewDto previewDto : previewDtoList) {
+            result.put(previewDto, userSmsc.get(previewDto.getUserId()));
+        }
 
         return result;
     }
@@ -234,4 +252,13 @@ public class SmsPreviewService {
                 .collect(Collectors.toSet());
     }
 
+    @Transactional
+    public void updatePreviewToCompletedById(long previewId) {
+        smsPreviewDao.updatePreviewToCompleted(previewId, LocalDateTime.now(), PreviewStatus.FINISHED);
+    }
+
+    @Transactional
+    public void updatePreviewSentCountById(long previewId, int sentCount) {
+        smsPreviewDao.updatePreviewSentCountById(previewId, sentCount, PreviewStatus.SENDING);
+    }
 }

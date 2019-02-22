@@ -31,7 +31,7 @@ public class AccountData {
     @Column(name = "LINES_COUNT")
     private int linesCount;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "USER_ID")
     private AppUser user;
 

@@ -4,5 +4,8 @@ public enum MessageStatus {
     READY,
     PENDING,
     SENT,
-    DELIVERED
+    DELIVERED,
+    EXPIRED,
+    BLACKLISTED,
+    REJECTED
 }
