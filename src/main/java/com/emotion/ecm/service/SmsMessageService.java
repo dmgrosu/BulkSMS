@@ -15,10 +15,17 @@ import org.jsmpp.bean.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.util.DateUtils;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -80,7 +87,18 @@ public class SmsMessageService {
         }
     }
 
-    public
+    @Async
+    @Scheduled(fixedRate = 30000)
+    public void clearExpiredMessages() {
+        long currentTimeInMillis = System.currentTimeMillis();
+        for (String messageId : dlrWaitingList.keySet()) {
+            DeliveryDto deliveryDto = dlrWaitingList.get(messageId);
+            if (currentTimeInMillis > deliveryDto.getMaxTimeInMillis()) {
+                smsMessageDao.updateMessageStatusById(deliveryDto.getMessageDbId(), MessageStatus.EXPIRED);
+                dlrWaitingList.remove(messageId);
+            }
+        }
+    }
 
     SubmitSmDto[] createMessagePackFromPreviewList(Map<PreviewDto, Integer> previews) {
 
@@ -120,6 +138,8 @@ public class SmsMessageService {
 
     private void addToDeliveryWaitingList(SubmitSmDto dto) {
         DeliveryDto deliveryDto = new DeliveryDto(dto.getId(), dto.getMessageId());
+        long submDateInMillis = dto.getSubmitRespTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        deliveryDto.setMaxTimeInMillis(submDateInMillis + StringUtil.convertExpirTimeInMillis(dto.getValidityPeriod()));
         dlrWaitingList.put(dto.getMessageId(), deliveryDto);
     }
 
