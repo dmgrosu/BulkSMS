@@ -122,17 +122,19 @@ public class SmsPreviewController {
 
     @PostMapping(value = "/delete")
     @ResponseBody
-    public AjaxResponseBody deletePreview(@RequestBody PreviewDto previewDto) {
+    public AjaxResponseBody deletePreview(@RequestBody int[] previewIds) {
 
         List<FieldError> allErrors = new ArrayList<>();
         AjaxResponseBody result = new AjaxResponseBody(true, allErrors);
 
         try {
-            if (previewDto.getPreviewId() == 0) {
+            if (previewIds == null) {
                 result.setValid(false);
                 allErrors.add(new FieldError("previewDto", "previewId", "preview id is 0"));
             } else {
-                smsPreviewService.deleteById(previewDto.getPreviewId());
+                for (int previewId : previewIds) {
+                    smsPreviewService.deleteById(previewId);
+                }
             }
         } catch (Exception e) {
             result.setValid(false);

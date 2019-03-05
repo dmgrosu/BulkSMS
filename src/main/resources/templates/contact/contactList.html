@@ -28,9 +28,9 @@
         <a class="btn btn-info btn-sm" onclick="showModal('add',0)">Add contact</a>
     </div>
 
-    <table class="table table-condensed table-hover table-bordered">
+    <table class="table table-condensed table-hover table-bordered" id="contactTable">
         <thead>
-        <tr class="text-center">
+        <tr style="background-color: #ccc">
             <th></th>
             <th>Full name</th>
             <th>Phone number</th>
@@ -271,6 +271,10 @@
             }
         });
     }
+
+    $(document).ready(function () {
+        $('#contactTable').DataTable();
+    });
 
 </script>
 

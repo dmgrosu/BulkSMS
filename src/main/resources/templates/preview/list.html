@@ -22,6 +22,13 @@
            th:href="@{/preview/list(finished=false)}"> Hide finished</a>
         <a class="btn btn-default btn-sm" th:if="${!showFinished}"
            th:href="@{/preview/list(finished=true)}"> Show finished</a>
+        <span class="dropdown">
+            <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown">actions...
+                <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+                <li><a href="#" onClick="deleteSelected()">delete selected</a></li>
+            </ul>
+        </span>
     </div>
 
     <table class="table table-hover table-condensed table-bordered" id="previewTable">
@@ -119,7 +126,7 @@
                 <input type="hidden" id="deletePreviewId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-info btn-sm" onclick="deleteElement()">Ok</button>
+                <button type="button" class="btn btn-info btn-sm" onclick="deletePreview(false)">Ok</button>
                 <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
             </div>
         </div>
@@ -176,8 +183,13 @@
         $('#deleteConfirm').modal('show');
     }
 
-    function deleteElement() {
-        var data = {"previewId": $('#deletePreviewId').val()};
+    function deletePreview(multiple) {
+        var data = [];
+        if (multiple) {
+            data = multiple;
+        } else {
+            data.push($('#deletePreviewId').val());
+        }
         $.ajax({
             type: 'POST',
             contentType: "application/json",
@@ -227,8 +239,23 @@
         });
     }
 
-    function checkAll(all) {
-        $('[id^=chbox]').prop('checked', all.checked);
+    function checkAll(allElement) {
+        $('[id^=chbox]').prop('checked', allElement.checked);
+    }
+
+    function deleteSelected() {
+        var previewIds = [];
+        $('[id^=chbox]').each(function () {
+            if (this.checked) {
+                var previewId = +this.id.substring(5);
+                previewIds.push(previewId);
+            }
+        });
+        if (previewIds.length === 0) {
+            alert('Nothing selected');
+        } else {
+            deletePreview(previewIds);
+        }
     }
 
     $(document).ready(function () {

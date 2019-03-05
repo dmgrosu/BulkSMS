@@ -191,18 +191,30 @@ public class SmsPreviewService {
 
         SmsPreview result = smsPreviewDao.findById(dto.getPreviewId()).orElseGet(SmsPreview::new);
 
-        result.setUser(userDao.getOne(dto.getUserId()));
-        result.setName(dto.getName());
-        result.setExpirationTime(expirationTimeService.getById(dto.getExpirationTimeId()));
+        if (result.getSendDate() != dto.getSendDate()) {
+            result.setSendDate(dto.getSendDate());
+        }
+        if (!result.getName().equals(dto.getName())) {
+            result.setName(dto.getName());
+        }
         if (dto.getStatus() == null || dto.getStatus() == PreviewStatus.CREATED) {
             result.setPreviewStatus(PreviewStatus.CREATED);
         }
-        result.setText(dto.getText());
+        if (!result.getText().equals(dto.getText())) {
+            result.setText(dto.getText());
+        }
+        if (result.getTps() != dto.getTps()) {
+            result.setTps(dto.getTps());
+        }
+        if (result.isDlr() != dto.isDlr()) {
+            result.setDlr(dto.isDlr());
+        }
+        result.setUser(userDao.getOne(dto.getUserId()));
+        result.setExpirationTime(expirationTimeService.getById(dto.getExpirationTimeId()));
         result.setSmsType(typeDao.getOne(dto.getTypeId()));
         result.setSmsPriority(priorityDao.getOne(dto.getPriorityId()));
-        result.setTps(dto.getTps());
         result.setSmppAddress(smppAddressDao.getOne(dto.getSmppAddressId()));
-        result.setDlr(dto.isDlr());
+
         String phoneNumbers = dto.getPhoneNumbers();
         if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
             result.setPhoneNumbers(phoneNumbers);
@@ -217,10 +229,16 @@ public class SmsPreviewService {
                     .collect(Collectors.toSet());
             result.setGroups(groups);
         }
-        result.setSendDate(dto.getSendDate());
-        result.setRecipientsCount(dto.getRecipientsCount());
-        result.setTotalParts(dto.getTotalParts());
-        result.setSentParts(dto.getTotalSent());
+
+        if (result.getRecipientsCount() != dto.getRecipientsCount()) {
+            result.setRecipientsCount(dto.getRecipientsCount());
+        }
+        if (result.getTotalParts() != dto.getTotalParts()) {
+            result.setTotalParts(dto.getTotalParts());
+        }
+        if (result.getSentParts() != dto.getTotalSent()) {
+            result.setSentParts(dto.getTotalSent());
+        }
 
         return result;
     }

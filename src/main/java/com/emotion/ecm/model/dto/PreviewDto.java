@@ -111,7 +111,7 @@ public class PreviewDto {
     public PreviewDto(long previewId, String name, LocalDateTime createDate, LocalDateTime sendDate, String text,
                       short tps, PreviewStatus status, String phoneNumbers, int typeId, int priorityId,
                       int smppAddressId, int userId, int expirationTimeId, boolean dlr,
-                      Integer accountDataId, int recipientsCount, int totalParts) {
+                      Integer accountDataId, int recipientsCount, int totalParts, int totalSent) {
         this.previewId = previewId;
         this.name = name;
         this.createDate = createDate;
@@ -129,6 +129,7 @@ public class PreviewDto {
         this.accountDataId = accountDataId;
         this.recipientsCount = recipientsCount;
         this.totalParts = totalParts;
+        this.totalSent = totalSent;
     }
 
 }

@@ -51,7 +51,7 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
             "(id, name, createDate, sendDate, text, tps, previewStatus, phoneNumbers, " +
             "smsType.id, smsPriority.id, smppAddress.id, user.id, " +
-            "expirationTime.id, dlr, accountData.id, recipientsCount, totalParts) " +
+            "expirationTime.id, dlr, accountData.id, recipientsCount, totalParts, sentParts) " +
             "from SmsPreview " +
             "where id = ?1")
     PreviewDto findDtoById(long previewId);

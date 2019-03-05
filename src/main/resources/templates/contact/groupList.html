@@ -28,9 +28,9 @@
         <a class="btn btn-info btn-sm" onclick="showModalGroup('add',0)">Add group</a>
     </div>
 
-    <table class="table table-condensed table-hover table-bordered">
+    <table class="table table-condensed table-hover table-bordered" id="groupTable">
         <thead>
-        <tr class="text-center">
+        <tr style="background-color: #ccc">
             <th></th>
             <th>Group name</th>
             <th>Total contacts</th>
@@ -285,6 +285,10 @@
             }
         });
     }
+
+    $(document).ready(function () {
+        $('#groupTable').DataTable();
+    });
 
 </script>
 

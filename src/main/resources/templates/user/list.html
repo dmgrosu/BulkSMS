@@ -16,9 +16,9 @@
 
 <div class="container-fluid col-md-12">
 
-    <table class="table table-condensed table-hover table-bordered">
+    <table class="table table-condensed table-hover table-bordered" id="userTable">
         <thead>
-        <tr class="text-center">
+        <tr style="background-color: #ccc">
             <th>Account</th>
             <th>Username</th>
             <th>First name</th>
@@ -115,6 +115,10 @@
             }
         });
     }
+
+    $(document).ready(function () {
+        $('#userTable').DataTable();
+    });
 
 </script>
 

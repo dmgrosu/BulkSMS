@@ -39,9 +39,9 @@
         </div>
     </div>
 
-    <table class="table table-bordered table-hover">
+    <table class="table table-bordered table-hover" id="accountDataTable">
         <thead>
-        <tr>
+        <tr style="background-color: #ccc">
             <th>Name</th>
             <th>File name</th>
             <th>Lines count</th>
@@ -240,6 +240,10 @@
         }, 300);
 
     }
+
+    $(document).ready(function () {
+        $('#accountDataTable').DataTable();
+    });
 
 </script>
 
