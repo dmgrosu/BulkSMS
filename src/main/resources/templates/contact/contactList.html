@@ -6,7 +6,7 @@
     <title>BulkSMS - contacts</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style th:replace="fragments/head"> </style>
+    <style th:replace="fragments/head"></style>
 </head>
 
 <body>
@@ -24,7 +24,9 @@
 
 <div class="container-fluid col-md-12">
 
-    <a class="btn btn-info btn-sm" onclick="showModal('add',0)">Add contact</a>
+    <div class="well well-sm">
+        <a class="btn btn-info btn-sm" onclick="showModal('add',0)">Add contact</a>
+    </div>
 
     <table class="table table-condensed table-hover table-bordered">
         <thead>
@@ -186,7 +188,7 @@
 
     function getSelectedGroups() {
         var result = [];
-        $('#groupSelect option:selected').each(function() {
+        $('#groupSelect option:selected').each(function () {
             result.push({"groupId": $(this).val()})
         });
         return result;

@@ -6,7 +6,7 @@
     <title>BulkSMS - prefixes</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style th:replace="fragments/head"> </style>
+    <style th:replace="fragments/head"></style>
 </head>
 
 <body>
@@ -15,7 +15,9 @@
 
 <div class="container-fluid col-md-12">
 
-    <a class="btn btn-info btn-sm" onclick="showModal('addGroup',0,'')">Add group</a>
+    <div class="well well-sm">
+        <a class="btn btn-info btn-sm" onclick="showModal('addGroup',0,'')">Add group</a>
+    </div>
 
     <table class="table table-condensed table-hover table-bordered">
         <thead>
@@ -81,7 +83,7 @@
                     <input type="hidden" id="saveType">
                     <input type="hidden" id="saveId">
                     <input type="hidden" id="prefixGroupId">
-                     <input id="inputModalName" required="required" class="form-control">
+                    <input id="inputModalName" required="required" class="form-control">
                 </div>
             </div>
             <div class="modal-footer">

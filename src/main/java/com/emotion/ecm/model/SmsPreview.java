@@ -92,7 +92,7 @@ public class SmsPreview {
     @JoinColumn(name = "ACCOUNT_DATA_ID")
     private AccountData accountData;
 
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "TB_PREVIEW_GROUP",
             joinColumns = @JoinColumn(name = "PREVIEW_ID", referencedColumnName = "ID"),
             inverseJoinColumns = @JoinColumn(name = "GROUP_ID", referencedColumnName = "ID"))

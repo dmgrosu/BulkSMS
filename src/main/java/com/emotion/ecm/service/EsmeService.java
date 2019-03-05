@@ -8,25 +8,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 public class EsmeService {
 
     @Value("${ecm.messagePackQueueSize}")
-    public int queueSize;
+    private int maxQueueSize;
 
     private SmsPreviewService smsPreviewService;
     private SmsMessageService smsMessageService;
     private SmscAccountService smscAccountService;
     private AccountService accountService;
-    private Map<Integer, ConcurrentLinkedQueue<SubmitSmDto[]>> messageQueue;
+    private ConcurrentHashMap<Integer, ConcurrentLinkedQueue<SubmitSmDto[]>> messageQueue;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EsmeService.class);
 
@@ -37,9 +39,10 @@ public class EsmeService {
         this.smsMessageService = smsMessageService;
         this.smscAccountService = smscAccountService;
         this.accountService = accountService;
-        this.messageQueue = new HashMap<>();
+        this.messageQueue = new ConcurrentHashMap<>();
     }
 
+    @Async
     @Scheduled(fixedRate = 5000)
     public void fillMessageQueue() {
 
@@ -56,7 +59,7 @@ public class EsmeService {
 
         for (ConcurrentLinkedQueue<SubmitSmDto[]> queue : messageQueue.values()) {
 
-            if (queue.size() >= queueSize) {
+            if (queue.size() >= maxQueueSize) {
                 continue;
             }
 
@@ -67,9 +70,13 @@ public class EsmeService {
 
             previews = balanceTpsByPreviews(previews);
 
-            SubmitSmDto[] messagePack = smsMessageService.createMessagePackFromPreviewList(previews);
-            if (messagePack.length > 0) {
-                queue.add(messagePack);
+            while (queue.size() < maxQueueSize) {
+                SubmitSmDto[] messagePack = smsMessageService.createMessagePackFromPreviewList(previews);
+                if (messagePack.length > 0) {
+                    queue.add(messagePack);
+                } else {
+                    break;
+                }
             }
         }
     }
@@ -83,6 +90,12 @@ public class EsmeService {
         }
 
         return result;
+    }
+
+    public void returnMessagePackInQueue(int smscAccountId, SubmitSmDto[] messagePack) {
+        if (messageQueue.containsKey(smscAccountId)) {
+            messageQueue.get(smscAccountId).add(messagePack);
+        }
     }
 
     /**

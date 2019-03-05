@@ -16,14 +16,22 @@
 
 <div class="container-fluid col-md-12">
 
-    <a class="btn btn-info" th:href="@{/preview/create}">Create preview</a>
+    <div class="well well-sm">
+        <a class="btn btn-info btn-sm" th:href="@{/preview/create}">Create preview</a>
+        <a class="btn btn-default btn-sm" th:if="${showFinished}"
+           th:href="@{/preview/list(finished=false)}"> Hide finished</a>
+        <a class="btn btn-default btn-sm" th:if="${!showFinished}"
+           th:href="@{/preview/list(finished=true)}"> Show finished</a>
+    </div>
 
-    <table class="table table-condensed table-bordered">
+    <table class="table table-hover table-condensed table-bordered" id="previewTable">
         <thead>
-        <tr>
+        <tr style="background-color: #ccc">
+            <th><input type="checkbox" onClick="checkAll(this)"></th>
             <th>User</th>
             <th>Name</th>
             <th>Send date</th>
+            <th>Text</th>
             <th>Priority</th>
             <th>Validity</th>
             <th>TPS</th>
@@ -38,13 +46,18 @@
             <td colspan="11" class="text-center">No previews available</td>
         </tr>
         <tr th:each="item: ${previews}">
+            <td>
+                <input type="checkbox" th:id="${'chbox'+item.previewId}">
+            </td>
             <td th:text="${item.username}"> user</td>
             <td>
                 <span class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown"
                        th:text="${item.name}"></a>
                     <ul class="dropdown-menu">
-                        <li><a th:href="@{/preview/edit(id=${item.previewId})}"> edit</a>
+                        <li><a th:if="${item.status.name() != 'SENDING' && item.status.name() != 'FINISHED'}"
+                               th:href="@{/preview/edit(id=${item.previewId})}">
+                            edit</a>
                         </li>
                         <li><a href="#"
                                th:onclick="'showDeleteModal('+${item.previewId}+')'"> delete</a>
@@ -52,7 +65,17 @@
                     </ul>
                 </span>
             </td>
-            <td th:text="${item.sendDate}"> send date</td>
+            <td th:text="${#temporals.format(item.sendDate,'dd-MM-yyyy HH:mm')}"> send date</td>
+            <td>
+                <span th:if="${#strings.length(item.text)<=10}"
+                      th:text="${item.text}"> text
+                </span>
+                <span th:if="${#strings.length(item.text)>10}">
+                    <a href="#" onclick="showText(this)"
+                       th:text="${#strings.substring(item.text,0,10)+'...'}"
+                       th:value="${item.text}"> </a>
+                </span>
+            </td>
             <td th:text="${item.priority}"> priority</td>
             <td th:text="${item.expirationTimeName}"> expiration time</td>
             <td th:text="${item.tps}"> tps</td>
@@ -64,12 +87,20 @@
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown"
                        th:text="${item.status}"></a>
                     <ul class="dropdown-menu">
-                        <li><a href="#" th:if="${item.status}=='CREATED'"
+                        <li><a href="#" th:if="${item.status.name() == 'CREATED'}"
                                th:onclick="'showChangeStatusModal('+${item.previewId}+',\'SAVED\')'"> save</a></li>
                         <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:if="${item.status.name() == 'SAVED' || item.status.name() == 'REJECTED'}"
                                th:onclick="'showChangeStatusModal('+${item.previewId}+',\'APPROVED\')'"> approve</a></li>
                         <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:if="${item.status.name() == 'SAVED' || item.status.name() == 'APPROVED'}"
                                th:onclick="'showChangeStatusModal('+${item.previewId}+',\'REJECTED\')'"> reject</a></li>
+                        <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:if="${item.status.name() == 'SENDING'}"
+                               th:onclick="'showChangeStatusModal('+${item.previewId}+',\'STOPPED\')'"> stop</a></li>
+                        <li><a href="#" sec:authorize="hasRole('ROLE_MODERATOR')"
+                               th:if="${item.status.name() == 'STOPPED'}"
+                               th:onclick="'showChangeStatusModal('+${item.previewId}+',\'RESUMED\')'"> resume</a></li>
                     </ul>
                 </span>
             </td>
@@ -113,9 +144,31 @@
     </div>
 </div>
 
+<div id="modalSmsText" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"></div>
+            <div class="modal-body">
+                <textarea class="form-control input-sm"
+                          id="smsText" rows="6" readonly> text
+                </textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 </body>
 
 <script type="text/javascript">
+
+    function showText(el) {
+        $('#smsText').val(el.attributes.value.nodeValue);
+        $('#modalSmsText').modal('show');
+    }
 
     function showDeleteModal(previewId, previewName) {
         $('#modalHeader').text('Delete preview \'' + previewName + '\'?');
@@ -136,7 +189,8 @@
                 window.location.reload();
             },
             error: function (errors) {
-
+                $('#deleteConfirm').modal('hide');
+                alert('internal server error')
             }
         });
     }
@@ -144,6 +198,9 @@
     function showChangeStatusModal(previewId, newStatus) {
         $('#modal2Header').text('Change preview status to \'' + newStatus + '\'?');
         $('#previewId').val(previewId);
+        if (newStatus === 'RESUMED') {
+            newStatus = 'APPROVED';
+        }
         $('#newStatus').val(newStatus);
         $('#changeStatusConfirm').modal('show');
     }
@@ -163,11 +220,20 @@
                 $('#changeStatusConfirm').modal('hide');
                 window.location.reload();
             },
-            error: function (errors) {
-
+            error: function () {
+                $('#changeStatusConfirm').modal('hide');
+                alert('internal server error');
             }
         });
     }
+
+    function checkAll(all) {
+        $('[id^=chbox]').prop('checked', all.checked);
+    }
+
+    $(document).ready(function () {
+        $('#previewTable').DataTable();
+    });
 
 </script>
 

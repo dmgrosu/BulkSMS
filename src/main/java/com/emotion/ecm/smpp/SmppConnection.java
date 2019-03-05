@@ -3,7 +3,6 @@ package com.emotion.ecm.smpp;
 import com.emotion.ecm.exception.SendingException;
 import com.emotion.ecm.model.dto.SmscAccountDto;
 import com.emotion.ecm.model.dto.SubmitSmDto;
-import lombok.Getter;
 import org.jsmpp.InvalidResponseException;
 import org.jsmpp.PDUException;
 import org.jsmpp.bean.*;
@@ -29,26 +28,24 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
     private static final String NEGATIVE_RESPONSE_CAPTION = "NegativeResponse from Address: %s to Address: %s ;";
     private static final String IO_EXCEPTION_CAPTION = "IOException from Address: %s to Address: %s ;";
 
-    @Getter
     private final SmscAccountDto smscAccount;
     private final BindParameter bindParameter;
+    private final SmppService smppService;
 
-    private boolean isBound;
-    private ReceivedListener<DeliverSm> dlrReceivedListener;
-
-    SmppConnection(SmscAccountDto smscAccountDto) {
+    SmppConnection(SmscAccountDto smscAccountDto, SmppService smppService) {
         //TODO: 03-01-2018 Verify if "no sync" is working properly.
         super();
         this.smscAccount = smscAccountDto;
-        bindParameter = new BindParameter(BindType.BIND_TRX, smscAccountDto.getSystemId(), smscAccountDto.getPassword(),
-                "ecm", TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, "");
+        this.bindParameter = new BindParameter(BindType.BIND_TRX, smscAccountDto.getSystemId(), smscAccountDto.getPassword(),
+                smscAccountDto.getSystemType(), TypeOfNumber.UNKNOWN, NumberingPlanIndicator.UNKNOWN, "");
+        this.smppService = smppService;
 
         setMessageReceiverListener(this);
     }
 
     void sendBulkMessages(SubmitSmDto[] messagePack) throws SendingException {
         if (!bind()) {
-            throw new SendingException("Connection is shutdown.");
+            throw new SendingException(smscAccount + ": connection is not bound");
         }
         if (smscAccount.isAsynchronous()) {
             sendAsync(messagePack);
@@ -57,7 +54,7 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
         }
     }
 
-    private void sendOneMessage(SubmitSmDto dto) {
+    private void sendOneMessage(SubmitSmDto dto) throws SendingException {
         try {
             String messageId = submitShortMessage(
                     dto.getServiceType(),
@@ -90,39 +87,35 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
         } catch (NegativeResponseException e) {
             LOGGER.warn(String.format(NEGATIVE_RESPONSE_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
         } catch (IOException e) {
-            LOGGER.warn(String.format(IO_EXCEPTION_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber()), e);
+            String errorMessage = String.format(IO_EXCEPTION_CAPTION, dto.getSourceNumber(), dto.getDestinationNumber());
+            LOGGER.warn(errorMessage);
+            throw new SendingException(errorMessage);
         }
     }
 
     public void shutdownConnection() {
         try {
             sendOutbind(smscAccount.getSystemId(), smscAccount.getPassword());
-            isBound = getSessionState().isBound();
         } catch (IOException e) {
             LOGGER.info("IOException on outbind: ", e);
         }
     }
 
-    public void addDeliverListener(ReceivedListener<DeliverSm> dlrReceivedListener) {
-        this.dlrReceivedListener = dlrReceivedListener;
-    }
-
     @Override
     public void onAcceptDeliverSm(DeliverSm deliverSm) throws ProcessRequestException {
-        if (dlrReceivedListener != null) {
-            dlrReceivedListener.onReceived(deliverSm);
-        } else {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.warn(String.format("No DeliveryListener for SmppConnection: %s;", smscAccount.toString()));
-            }
-            try {
-                if (LOGGER.isInfoEnabled()) {
-                    LOGGER.info(String.format("Received DeliverySm: %s; ", deliverSm.getShortMessageAsDeliveryReceipt().toString()));
-                }
-            } catch (InvalidDeliveryReceiptException e) {
-                LOGGER.warn("Incorrect delivery receipt: ", e);
-            }
+        if (smppService == null) {
+            LOGGER.error("SmppService not initialized");
+            return;
         }
+        try {
+            DeliveryReceipt deliveryReceipt = deliverSm.getShortMessageAsDeliveryReceipt();
+            String messageId = deliveryReceipt.getId();
+            String messageStatus = deliveryReceipt.getFinalStatus().name();
+            smppService.processDeliverySm(messageId, messageStatus);
+        } catch (InvalidDeliveryReceiptException e) {
+            LOGGER.warn("Incorrect delivery receipt: ", e);
+        }
+
     }
 
     @Override
@@ -135,32 +128,39 @@ public class SmppConnection extends SMPPSession implements MessageReceiverListen
         return null;
     }
 
-    private void sendSync(SubmitSmDto[] submitSms) {
+    private void sendSync(SubmitSmDto[] submitSms) throws SendingException {
         for (SubmitSmDto submitSm : submitSms) {
             sendOneMessage(submitSm);
         }
     }
 
     private void sendAsync(SubmitSmDto[] messagePack) {
-        Arrays.stream(messagePack).parallel().forEach(this::sendOneMessage);
-
+        Arrays.stream(messagePack).parallel()
+                .forEach(dto -> {
+                    try {
+                        sendOneMessage(dto);
+                    } catch (SendingException e) {
+                        LOGGER.error(e.getMessage());
+                    }
+                });
     }
 
     private boolean bind() {
-        if (isBound) {
-            return true;
-        } else {
-            isBound = getSessionState().isBound();
-        }
-        if (!isBound) {
+        if (!getSessionState().isBound()) {
             try {
                 connectAndBind(smscAccount.getIpAddress(), smscAccount.getPort(), bindParameter);
-                isBound = getSessionState().isBound();
             } catch (IOException e) {
-                LOGGER.error(String.format("IOException on bind. SmscAccountId: %s; ", smscAccount.getSmscAccountId()), e);
+                String smscInfo = "[" +
+                        smscAccount.getSystemId() +
+                        ", " +
+                        smscAccount.getIpAddress() +
+                        ":" +
+                        smscAccount.getPort() +
+                        "]";
+                LOGGER.error(String.format("%s bind failed: %s", smscInfo, e.getMessage()));
             }
         }
-        return isBound;
+        return getSessionState().isBound();
     }
 
 }

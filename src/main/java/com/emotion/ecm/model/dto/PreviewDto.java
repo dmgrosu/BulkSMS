@@ -70,12 +70,13 @@ public class PreviewDto {
     public PreviewDto() {
     }
 
-    public PreviewDto(long previewId, String name, LocalDateTime sendDate, short tps,
+    public PreviewDto(long previewId, String name, LocalDateTime sendDate, String text, short tps,
                       int recipientsCount, int totalParts, int totalSent, PreviewStatus status,
                       String priority, String smppAddress, String username, String expirationTimeName) {
         this.previewId = previewId;
         this.name = name;
         this.sendDate = sendDate;
+        this.text = text;
         this.tps = tps;
         this.recipientsCount = recipientsCount;
         this.totalParts = totalParts;
@@ -87,15 +88,17 @@ public class PreviewDto {
         this.expirationTimeName = expirationTimeName;
     }
 
-    public PreviewDto(long previewId, LocalDateTime sendDate, String text, short tps, PreviewStatus status,
-                      String phoneNumbers, int typeId, int priorityId, int smppAddressId, int userId,
-                      int expirationTimeId, boolean dlr, int accountDataId) {
+    public PreviewDto(long previewId, LocalDateTime sendDate, String text, short tps, int totalSent,
+                      PreviewStatus status, String phoneNumbers, boolean textEdited, int typeId, int priorityId,
+                      int smppAddressId, int userId, int expirationTimeId, boolean dlr, Integer accountDataId) {
         this.previewId = previewId;
         this.sendDate = sendDate;
         this.text = text;
         this.tps = tps;
+        this.totalSent = totalSent;
         this.status = status;
         this.phoneNumbers = phoneNumbers;
+        this.textEdited = textEdited;
         this.typeId = typeId;
         this.priorityId = priorityId;
         this.smppAddressId = smppAddressId;

@@ -45,7 +45,6 @@ public class SmsMessageService {
     private ExpirationTimeService expirationTimeService;
 
     private final ConcurrentHashMap<Long, List<String>> destinationsMap = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, DeliveryDto> dlrWaitingList = new ConcurrentHashMap<>();
 
     @Autowired
     public SmsMessageService(SmsMessageDao smsMessageDao, SmsPrefixService smsPrefixService,
@@ -73,31 +72,21 @@ public class SmsMessageService {
             LOGGER.error("message pack is null");
             return;
         }
-        RegisteredDelivery defaultRegDlr = new RegisteredDelivery(SMSCDeliveryReceipt.DEFAULT);
-        for (SubmitSmDto dto : messagePack) {
-            if (dto.getId() > 0) {
-                if (dto.getMessageId() != null && !dto.getMessageId().isEmpty()) {
-                    if (dto.getRegisteredDelivery() != defaultRegDlr) {
-                        addToDeliveryWaitingList(dto);
-                    }
-                    smsMessageDao.updateMessageIdById(dto.getId(),
-                            dto.getMessageId(), dto.getSubmitRespTime(), MessageStatus.SENT);
-                }
-            }
-        }
+        Arrays.stream(messagePack)
+                .filter(dto -> dto.getId() > 0)
+                .filter(dto -> dto.getMessageId() != null && !dto.getMessageId().isEmpty())
+                .forEach(dto -> smsMessageDao.updateMessageIdById(dto.getId(), dto.getMessageId(),
+                        dto.getSubmitRespTime(), MessageStatus.SENT));
     }
 
-    @Async
-    @Scheduled(fixedRate = 30000)
-    public void clearExpiredMessages() {
-        long currentTimeInMillis = System.currentTimeMillis();
-        for (String messageId : dlrWaitingList.keySet()) {
-            DeliveryDto deliveryDto = dlrWaitingList.get(messageId);
-            if (currentTimeInMillis > deliveryDto.getMaxTimeInMillis()) {
-                smsMessageDao.updateMessageStatusById(deliveryDto.getMessageDbId(), MessageStatus.EXPIRED);
-                dlrWaitingList.remove(messageId);
-            }
-        }
+    @Transactional
+    public void updateMessageStatusById(long id, MessageStatus status) {
+        smsMessageDao.updateMessageStatusById(id, status);
+    }
+
+    @Transactional
+    public void updateDlrDateById(long messageDbId, MessageStatus newStatus) {
+        smsMessageDao.updateDlrDateById(messageDbId, newStatus, LocalDateTime.now());
     }
 
     SubmitSmDto[] createMessagePackFromPreviewList(Map<PreviewDto, Integer> previews) {
@@ -114,7 +103,9 @@ public class SmsMessageService {
             try {
                 SmppAddressDto smppAddress = smppAddressService.getDtoById(preview.getSmppAddressId());
                 String expTimeValue = expirationTimeService.getExpirationTimeValueById(preview.getExpirationTimeId());
+
                 List<SmsMessage> messages = getMessagesToSendByPreview(preview, preview.getTps());
+
                 if (messages.size() > 0) {
                     List<SmsMessage> savedMessages = batchSave(messages);
                     if (savedMessages.size() > 0) {
@@ -127,6 +118,7 @@ public class SmsMessageService {
                     }
                 } else {
                     smsPreviewService.updatePreviewToCompletedById(preview.getPreviewId());
+                    destinationsMap.remove(preview.getPreviewId());
                 }
             } catch (SmppAddressException | ExpirationTimeException ex) {
                 LOGGER.error(ex.getMessage());
@@ -134,13 +126,6 @@ public class SmsMessageService {
         }
 
         return result.toArray(new SubmitSmDto[0]);
-    }
-
-    private void addToDeliveryWaitingList(SubmitSmDto dto) {
-        DeliveryDto deliveryDto = new DeliveryDto(dto.getId(), dto.getMessageId());
-        long submDateInMillis = dto.getSubmitRespTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        deliveryDto.setMaxTimeInMillis(submDateInMillis + StringUtil.convertExpirTimeInMillis(dto.getValidityPeriod()));
-        dlrWaitingList.put(dto.getMessageId(), deliveryDto);
     }
 
     private Set<String> getSentDestinationsByPreviewId(long previewId) {
@@ -193,6 +178,7 @@ public class SmsMessageService {
         }
 
         List<String> numbersList = getDestinations(previewDto);
+
         if (numbersList == null) {
             LOGGER.warn("numbers list is null");
             return result;
@@ -270,10 +256,10 @@ public class SmsMessageService {
             }
         }
 
-        int accountDataId = previewDto.getAccountDataId();
+        Integer accountDataId = previewDto.getAccountDataId();
         Set<Integer> groupIds = previewDto.getGroupIds();
         String phoneNumbers = previewDto.getPhoneNumbers();
-        if (accountDataId != 0) {
+        if (accountDataId != null) {
             result = getNumbersFromFile(previewDto.getAccountDataId()).stream()
                     .filter(s -> !sentDestinations.contains(s))
                     .collect(Collectors.toList());

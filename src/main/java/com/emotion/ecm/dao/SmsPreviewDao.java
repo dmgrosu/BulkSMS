@@ -20,39 +20,53 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
     Optional<SmsPreview> findByUserIdAndName(int userId, String name);
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
-            "(p.id, p.sendDate, p.text, p.tps, p.previewStatus, p.phoneNumbers, p.smsType.id, " +
-            "p.smsPriority.id, p.smppAddress.id, p.user.id, p.expirationTime.id, p.dlr, " +
-            "p.accountData.id) " +
-            "from SmsPreview p " +
-            "where p.user.id in (?1) and " +
-            "p.sendDate <= ?2 and p.deleted = false and " +
-            "p.previewStatus in (?3) and p.finishDate is null")
+            "(id, sendDate, text, tps, sentParts, previewStatus, phoneNumbers, textEdited, smsType.id, " +
+            "smsPriority.id, smppAddress.id, user.id, expirationTime.id, dlr, accountData.id) " +
+            "from SmsPreview " +
+            "where user.id in (?1) and " +
+            "sendDate <= ?2 and deleted = false and " +
+            "previewStatus in (?3) and finishDate is null")
     List<PreviewDto> findPreviewDtoForBroadcast(List<Integer> userIds, LocalDateTime currDate,
                                                 List<PreviewStatus> statuses);
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
-            "(p.id, p.name, p.sendDate, p.tps, p.recipientsCount, p.totalParts, p.sentParts, " +
-            "p.previewStatus, p.smsPriority.name, p.smppAddress.address, p.user.username, " +
-            "p.expirationTime.name) " +
-            "from SmsPreview p " +
-            "where p.user.id = ?1")
+            "(id, name, sendDate, text, tps, recipientsCount, totalParts, sentParts, " +
+            "previewStatus, smsPriority.name, smppAddress.address, user.username, " +
+            "expirationTime.name) " +
+            "from SmsPreview " +
+            "where user.id = ?1 " +
+            "and finishDate is null " +
+            "order by sendDate desc")
+    List<PreviewDto> findAllNotFinishedDtoByUserId(int id);
+
+    @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
+            "(id, name, sendDate, text, tps, recipientsCount, totalParts, sentParts, " +
+            "previewStatus, smsPriority.name, smppAddress.address, user.username, " +
+            "expirationTime.name) " +
+            "from SmsPreview " +
+            "where user.id = ?1 " +
+            "order by sendDate desc")
     List<PreviewDto> findAllDtoByUserId(int id);
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
-            "(p.id, p.name, p.createDate, p.sendDate, p.text, p.tps, p.previewStatus, p.phoneNumbers, " +
-            "p.smsType.id, p.smsPriority.id, p.smppAddress.id, p.user.id, " +
-            "p.expirationTime.id, p.dlr, p.accountData.id, p.recipientsCount, p.totalParts) " +
-            "from SmsPreview p " +
-            "where p.id = ?1")
+            "(id, name, createDate, sendDate, text, tps, previewStatus, phoneNumbers, " +
+            "smsType.id, smsPriority.id, smppAddress.id, user.id, " +
+            "expirationTime.id, dlr, accountData.id, recipientsCount, totalParts) " +
+            "from SmsPreview " +
+            "where id = ?1")
     PreviewDto findDtoById(long previewId);
 
     PreviewGroupDto findPreviewGroupDtoById(long previewId);
 
     @Modifying
-    @Query("update SmsPreview p set p.finishDate = ?2, p.previewStatus = ?3 where p.id = ?1")
+    @Query("update SmsPreview set finishDate = ?2, previewStatus = ?3 where id = ?1")
     void updatePreviewToCompleted(long previewId, LocalDateTime finishDate, PreviewStatus newStatus);
 
     @Modifying
-    @Query("update SmsPreview p set p.sentParts = p.sentParts + ?2, p.previewStatus = ?3 where p.id = ?1")
+    @Query("update SmsPreview set sentParts = sentParts + ?2, previewStatus = ?3 where id = ?1")
     void updatePreviewSentCountById(long previewId, int sentCount, PreviewStatus newStatus);
+
+    @Modifying
+    @Query("update SmsPreview set previewStatus = ?2 where id = ?1")
+    void updatePreviewStatusById(long previewId, PreviewStatus newStatus);
 }

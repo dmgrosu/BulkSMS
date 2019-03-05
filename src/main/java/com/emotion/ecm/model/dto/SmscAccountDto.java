@@ -22,6 +22,8 @@ public class SmscAccountDto {
     @NotEmpty
     private String ipAddress;
 
+    private String systemType;
+
     @Min(1)
     @Max(65535)
     private int port;

@@ -31,6 +31,9 @@ public class SmscAccount {
     @Column(name = "PORT")
     private int port;
 
+    @Column(name = "SYSTEM_TYPE")
+    private String systemType;
+
     @Column(name = "TPS")
     private short tps;
 
