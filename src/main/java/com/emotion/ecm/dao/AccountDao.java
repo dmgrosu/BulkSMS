@@ -15,10 +15,12 @@ public interface AccountDao extends JpaRepository<Account, Integer> {
             "from Account a")
     List<AccountDto> getAllDto();
 
-    @Query("select new com.emotion.ecm.model.dto.AccountDto(a.id, a.name, a.smscAccount.id) " +
+    @Query("select new com.emotion.ecm.model.dto.AccountDto(a.id, a.name) " +
             "from Account a")
     List<AccountDto> getAllNames();
 
     Optional<Account> findByName(String name);
 
+    @Query("select name from Account where id = ?1")
+    String findNameById(Integer accountId);
 }

@@ -24,6 +24,11 @@ public class AccountDto {
     public AccountDto() {
     }
 
+    public AccountDto(int accountId, String name) {
+        this.accountId = accountId;
+        this.name = name;
+    }
+
     public AccountDto(int accountId, String name, int smscAccountId) {
         this.accountId = accountId;
         this.name = name;

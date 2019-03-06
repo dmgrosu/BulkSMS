@@ -6,14 +6,32 @@
         <ul class="nav navbar-nav">
 
             <li class="dropdown">
-                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Main menu
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Contacts
                     <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                    <li><a th:href="@{/contact/groupList}">Contacts</a></li>
+                    <li><a th:href="@{/contact/groupList}">Groups</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">SMS menu
+                    <span class="caret"></span></a>
+                <ul class="dropdown-menu">
                     <li><a th:href="@{/preview/list}">SMS Previews</a></li>
                     <li><a th:href="@{/accountData/list}">SMS Files</a></li>
                     <li><a th:href="@{/prefix/list}">Prefixes</a></li>
                     <li><a th:href="@{/smppAddress/list}">Originators</a></li>
+                    <li><a th:href="@{/blackList/list}">Black Lists</a></li>
+                </ul>
+            </li>
+
+            <li class="dropdown">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">Reports
+                    <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li><a href="#">General report</a></li>
+                    <li><a href="#">Preview details</a></li>
+                    <li><a href="#">Msisdn details</a></li>
                 </ul>
             </li>
 

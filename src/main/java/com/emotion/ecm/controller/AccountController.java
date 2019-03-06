@@ -82,4 +82,15 @@ public class AccountController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping(value = "/getAllNames")
+    @ResponseBody
+    public ResponseEntity<List<AccountDto>> getAllNames() {
+        try {
+            return ResponseEntity.ok(accountService.getAllNames());
+        } catch (Exception ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }

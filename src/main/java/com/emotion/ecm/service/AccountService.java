@@ -30,6 +30,10 @@ public class AccountService {
         return accountDao.getAllDto();
     }
 
+    public List<AccountDto> getAllNames() {
+        return accountDao.getAllNames();
+    }
+
     public Account getById(int id) throws AccountException {
         return accountDao.findById(id)
                 .orElseThrow(() -> new AccountException("account not found"));
@@ -43,6 +47,14 @@ public class AccountService {
         return accountDao.save(account);
     }
 
+    public Optional<Account> findByName(String name) {
+        return accountDao.findByName(name);
+    }
+
+    public void deleteById(int id) {
+        accountDao.deleteById(id);
+    }
+
     private Account convertDtoToAccount(AccountDto dto) {
 
         Account result = accountDao.findById(dto.getAccountId()).orElseGet(Account::new);
@@ -54,11 +66,10 @@ public class AccountService {
         return result;
     }
 
-    public Optional<Account> findByName(String name) {
-        return accountDao.findByName(name);
-    }
-
-    public void deleteById(int id) {
-        accountDao.deleteById(id);
+    public String getNameById(Integer accountId) throws AccountException {
+        if (accountId == null) {
+            throw new AccountException("accountId is null");
+        }
+        return accountDao.findNameById(accountId);
     }
 }
