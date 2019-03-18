@@ -16,6 +16,7 @@ public class BlackListDto {
 
     private Integer accountId;
     private String accountName;
+    private long numbersCount;
 
     public BlackListDto() {
     }
@@ -25,4 +26,12 @@ public class BlackListDto {
         this.name = name;
         this.accountId = accountId;
     }
+
+    public BlackListDto(int blackListId, String name, Integer accountId, String accountName) {
+        this.blackListId = blackListId;
+        this.name = name;
+        this.accountId = accountId;
+        this.accountName = accountName;
+    }
+
 }

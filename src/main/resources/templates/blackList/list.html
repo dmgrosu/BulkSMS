@@ -8,6 +8,88 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style th:replace="fragments/head"></style>
+    <style>
+        /* define height and width of scrollable area. Add 16px to width for scrollbar          */
+        div.tableContainer {
+            clear: both;
+            border: 1px solid #ccc;
+            height: 285px;
+            overflow: auto;
+            width: 100%
+        }
+
+        /* Reset overflow value to hidden for all non-IE browsers. */
+        html > body div.tableContainer {
+            overflow: hidden;
+            width: 100%
+        }
+
+        /* define width of table. IE browsers only                 */
+        div.tableContainer table {
+            float: left;
+            /* width: 740px */
+        }
+
+        /* define width of table. Add 16px to width for scrollbar.           */
+        /* All other non-IE browsers.                                        */
+        html > body div.tableContainer table {
+            /* width: 756px */
+        }
+
+        /* set table header to a fixed position. WinIE 6.x only                                       */
+        /* In WinIE 6.x, any element with a position property set to relative and is a child of       */
+        /* an element that has an overflow property set, the relative value translates into fixed.    */
+        /* Ex: parent element DIV with a class of tableContainer has an overflow property set to auto */
+
+        thead.fixedHeader tr {
+            position: relative;
+        }
+
+        /* set THEAD element to have block level attributes. All other non-IE browsers            */
+        /* this enables overflow to work on TBODY element. All other non-IE, non-Mozilla browsers */
+
+        /* make the TH elements pretty */
+        thead.fixedHeader th {
+            background: #ccc;
+            border: 1px solid #ccc;
+            font-weight: normal;
+            padding: 4px 3px;
+            text-align: left
+        }
+
+        html > body tbody.scrollContent {
+            display: block;
+            height: 254px;
+            overflow: auto;
+            width: 100%
+        }
+
+        html > body thead.fixedHeader {
+            display: table;
+            overflow: auto;
+            width: 100%
+        }
+
+        /* make TD elements pretty. Provide alternating classes for striping the table */
+        /* http://www.alistapart.com/articles/zebratables/                             */
+        tbody.scrollContent td, tbody.scrollContent tr.normalRow td {
+            background: #FFF;
+            border-bottom: none;
+            border-left: none;
+            border-right: 1px solid #CCC;
+            border-top: 1px solid #DDD;
+            padding: 2px 3px 3px 4px
+        }
+
+        tbody.scrollContent tr.alternateRow td {
+            background: #EEE;
+            border-bottom: none;
+            border-left: none;
+            border-right: 1px solid #CCC;
+            border-top: 1px solid #DDD;
+            padding: 2px 3px 3px 4px
+        }
+    </style>
 </head>
 
 <body>
@@ -31,8 +113,9 @@
         <thead>
         <tr style="background-color: #ccc">
             <th><input type="checkbox" onClick="checkAll(this)"></th>
-            <th>List name</th>
+            <th>Black list name</th>
             <th>Account</th>
+            <th>Numbers count</th>
         </tr>
         </thead>
         <tbody>
@@ -59,6 +142,12 @@
             </td>
             <td>
                 <span th:text="${item.accountName}"></span>
+            </td>
+            <td>
+                <a href="#" th:onclick="'editNumbers('+${item.blackListId}+')'">
+                    <span class="badge" th:text="${item.numbersCount}"></span>
+                    edit numbers
+                </a>
             </td>
         </tr>
         </tbody>
@@ -115,17 +204,75 @@
     </div>
 </div>
 
+<div id="numbersModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4> Numbers list</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="addNumbersBLId">
+                <div class="form-group tableContainer">
+                    <table id="numbersTable" border="0" cellpadding="0"
+                           cellspacing="0" width="100%" class="scrollTable">
+                        <thead class="fixedHeader">
+                        <tr>
+                            <th style="width: 10%">#</th>
+                            <th style="width: 60%">Number</th>
+                            <th style="width: 30%"></th>
+                        </tr>
+                        </thead>
+                        <tbody class="scrollContent">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-group">
+                    <div class="form-inline">
+                        <label>Add number</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control input-sm" id="numberToAdd">
+                            <div class="input-group-btn">
+                                <button class="btn btn-sm btn-basic" onclick="addNumber()">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="form-inline">
+                        <label>Add from file</label>
+                        <div class="input-group">
+                            <input type="file" class="form-control input-sm" id="numbersSourceFile">
+                            <div class="input-group-btn">
+                                <button class="btn btn-sm btn-basic" onclick="addNumbersFromFile()">Add</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-sm btn-basic" onclick="deleteNumber(-1)">Clear all</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-info btn-sm" onclick="saveNumbersList()">Ok</button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 
 <script type="text/javascript">
 
+    let numberTableTotalRows = 0;
+
     function showModal(type, elementId) {
-        var modalWindow = $('#modalAdd');
-        var blackListIdEl = $('#blackListId');
-        var nameEl = $('#name');
-        var deleteBlackListId = $('#deleteBlackListId');
-        var headerTextEl = $('#modalAddHeader');
-        var accountSelEl = $('#accountSelect');
+        let modalWindow = $('#modalAdd');
+        const blackListIdEl = $('#blackListId');
+        const nameEl = $('#name');
+        const deleteBlackListId = $('#deleteBlackListId');
+        const headerTextEl = $('#modalAddHeader');
+        const accountSelEl = $('#accountSelect');
         blackListIdEl.val('');
         nameEl.val('');
         accountSelEl.find('option').remove();
@@ -148,8 +295,157 @@
         modalWindow.modal('show');
     }
 
+    function editNumbers(blackListId) {
+        deleteNumber(-1);
+        $('#addNumbersBLId').val(blackListId);
+        const numbersTable = $('#numbersTable > tbody');
+        $('#numbersSourceFile').val('');
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: "/blackList/getNumbersById",
+            data: {"id": blackListId},
+            success: function (result) {
+                for (let i = 0; i < result.length; i++) {
+                    if (result[i].length > 0) {
+                        numbersTable.append(
+                            createNumbersTableRow(i + 1, result[i])
+                        )
+                    }
+                }
+                numberTableTotalRows = result.length;
+            },
+            error: function () {
+                alert('Internal server error');
+            }
+        });
+        $('#numbersModal').modal('show');
+    }
+
+    function saveNumbersList() {
+        const arr = $('#numbersTable > tbody tr').toArray();
+        let numbersList = [];
+        for (let i = 0; i < arr.length; i++) {
+            numbersList.push(arr[i].children[1].innerHTML);
+        }
+        let data = {
+            'blackListId': $('#addNumbersBLId').val(),
+            'msisdns': numbersList
+        };
+        if (numbersList.length > 0) {
+            $.ajax({
+                type: 'POST',
+                contentType: "application/json",
+                url: "/blackList/addNumbersById",
+                data: JSON.stringify(data),
+                dataType: "JSON",
+                success: function (result) {
+                    if (result.valid) {
+                        $('#numbersModal').modal('hide');
+                        window.location.reload();
+                    } else {
+                        alert('invalid numbers');
+                    }
+                },
+                error: function (errors) {
+                    alert(errors);
+                }
+            });
+        }
+    }
+
+    function createNumbersTableRow(index, value) {
+        return (
+            '<tr id="row' + index + '">' +
+            '<td style="width: 10%">' + index + '</td>' +
+            '<td style="width: 60%">' + value.trim() + '</td>' +
+            '<td style="width: 28%">' + '<a href="#" onclick="deleteNumber(' + index + ')">delete</a></td>' +
+            '</tr>'
+        );
+    }
+
+    function addNumber() {
+        const numberValue = $('#numberToAdd').val();
+        if (numberValue !== '0') {
+            const found = searchNumber(numberValue);
+            if (found !== -1) {
+                alert('Numbers exists: '+found);
+                return;
+            }
+            $('#numbersTable > tbody').append(
+                createNumbersTableRow(numberTableTotalRows + 1, numberValue)
+            );
+            numberTableTotalRows += 1;
+        }
+    }
+
+    // returns a rowId, -1 if not found
+    function searchNumber(valueToSearch) {
+        if (valueToSearch === null || valueToSearch === '') {
+            return -1;
+        }
+        const arr = $('#numbersTable > tbody tr').toArray();
+        for (let i = 0; i < arr.length; i++) {
+            if (arr[i].children[1].innerHTML === valueToSearch) {
+                return arr[i].children[0].id;
+            }
+        }
+        return -1;
+    }
+
+    function deleteNumber(rowId) {
+        if (rowId === -1) { // all rows
+            $('#numbersTable > tbody').empty();
+            numberTableTotalRows = 0;
+        } else {
+            $('#row' + rowId).remove();
+            refreshRowsCount();
+        }
+    }
+
+    function refreshRowsCount() {
+        const arr = $('#numbersTable > tbody tr').toArray();
+        for (let i = 0; i < arr.length; i++) {
+            arr[i].children[0].innerHTML = i + 1;
+        }
+        numberTableTotalRows = arr.length;
+    }
+
+    function addNumbersFromFile() {
+        if (numberTableTotalRows > 0) {
+            if (confirm('Delete existing numbers?')) {
+                deleteNumber(-1);
+            }
+        }
+        const numbersTable = $('#numbersTable > tbody');
+        const regex = /^([a-zA-Z0-9\s_\\.\-:])+(.csv|.txt)$/;
+        const sourceFile = $('#numbersSourceFile');
+        if (regex.test(sourceFile.val().toLowerCase())) {
+            if (typeof (FileReader) !== "undefined") {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    const values = this.result.split(/[\n,;]/);
+                    for (let i = 0; i < values.length; i++) {
+                        if (values[i].length > 0) {
+                            numbersTable.append(
+                                createNumbersTableRow(i + 1, values[i])
+                            )
+                        }
+                    }
+                    numberTableTotalRows = numberTableTotalRows + i + 1;
+                };
+                reader.readAsText(sourceFile[0].files[0]);
+                sourceFile.val('');
+            } else {
+                alert("This browser does not support HTML5.");
+            }
+        } else {
+            alert("Please upload a valid CSV file.");
+        }
+    }
+
     function renderById(blackListId) {
-        var accountSelectEl = $('#accountSelect');
+        const accountSelectEl = $('#accountSelect');
         $.ajax({
             type: 'GET',
             contentType: "application/json",
@@ -186,10 +482,10 @@
 
     function saveElement() {
         clearErrors();
-        var url = "/blackList/save";
-        var accIdStr = $('#accountSelect').val();
-        var accountId = accIdStr === '-' ? null : accIdStr;
-        var data = {
+        const url = "/blackList/save";
+        const accIdStr = $('#accountSelect').val();
+        const accountId = accIdStr === '-' ? null : accIdStr;
+        const data = {
             "blackListId": $('#blackListId').val(),
             "name": $('#name').val(),
             "accountId": accountId
@@ -206,7 +502,7 @@
                     window.location.reload();
                 } else {
                     $.each(result.errors, function (i, error) {
-                        var element = $('#' + error.field + 'MessageError');
+                        const element = $('#' + error.field + 'MessageError');
                         element.text(error.defaultMessage);
                         element.parent().addClass('has-error');
                     })
@@ -219,13 +515,13 @@
     }
 
     function clearErrors() {
-        var sel = $("p[id*='MessageError']");
+        const sel = $("p[id*='MessageError']");
         sel.text('');
         sel.parent().removeClass('has-error');
     }
 
     function deleteBlackList(multi) {
-        var data = [];
+        let data = [];
         if (multi) {
             data = multi;
         } else {
@@ -252,10 +548,10 @@
     }
 
     function deleteSelected() {
-        var blackListIds = [];
+        let blackListIds = [];
         $('[id^=chbox]').each(function () {
             if (this.checked) {
-                var blackListId = +this.id.substring(5);
+                const blackListId = +this.id.substring(5);
                 blackListIds.push(blackListId);
             }
         });

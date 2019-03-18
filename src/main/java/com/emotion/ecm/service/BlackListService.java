@@ -5,14 +5,19 @@ import com.emotion.ecm.dao.BlackListMsisdnDao;
 import com.emotion.ecm.exception.AccountException;
 import com.emotion.ecm.exception.BlackListException;
 import com.emotion.ecm.model.BlackList;
+import com.emotion.ecm.model.BlackListMsisdn;
 import com.emotion.ecm.model.dto.BlackListDto;
+import com.emotion.ecm.model.dto.BlackListMsisdnDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class BlackListService {
@@ -43,6 +48,7 @@ public class BlackListService {
                     LOGGER.error(ex.getMessage());
                 }
             }
+            blackListDto.setNumbersCount(blackListMsisdnDao.countByBlackListId(blackListDto.getBlackListId()));
         }
         return result;
     }
@@ -73,8 +79,59 @@ public class BlackListService {
         return blackListDao.findByName(name);
     }
 
-    public void save(BlackListDto dto) throws AccountException {
-        blackListDao.save(convertDtoToBlackList(dto));
+    @Transactional
+    public BlackList saveBlackList(BlackList blackList) {
+        return blackListDao.save(blackList);
+    }
+
+    public void saveBlackList(BlackListDto dto) throws AccountException {
+        saveBlackList(convertDtoToBlackList(dto));
+    }
+
+    public void deleteBlackListById(int id) {
+        deleteMsisdnListByBlackListId(id);
+        blackListDao.deleteById(id);
+    }
+
+    @Transactional
+    public void saveMsisdnList(BlackListMsisdnDto dto) throws BlackListException {
+        if (dto == null) {
+            throw new BlackListException("blackListMsisdnDto is null");
+        }
+        Integer blackListId = dto.getBlackListId();
+        Set<String> msisdnSet = dto.getMsisdns();
+        if (blackListId == null) {
+            LOGGER.error("attempt to save msisdn list failed: blackListId is null");
+            throw new BlackListException("blackListId is null");
+        }
+        if (msisdnSet == null) {
+            LOGGER.error("attempt to save msisdn list failed: msisdn list in dto is null");
+            throw new BlackListException("msisdn list is null");
+        }
+        Optional<BlackList> optional = blackListDao.findById(blackListId);
+        if (!optional.isPresent()) {
+            LOGGER.error(String.format("attempt to save msisdn list failed: blackList[%s] not found", blackListId));
+            throw new BlackListException(String.format("blackList[%s] not found", blackListId));
+        }
+
+        BlackList blackList = optional.get();
+
+        List<BlackListMsisdn> msisdnList = msisdnSet.stream()
+                .map(msisdn -> new BlackListMsisdn(msisdn, blackList))
+                .collect(Collectors.toList());
+
+        updateMsisdnListByBlackListId(blackList.getId(), msisdnList);
+    }
+
+    @Transactional
+    public void updateMsisdnListByBlackListId(int blackListId, List<BlackListMsisdn> msisdnList) {
+        deleteMsisdnListByBlackListId(blackListId);
+        blackListMsisdnDao.saveAll(msisdnList);
+    }
+
+    @Transactional
+    public void deleteMsisdnListByBlackListId(int blackListId) {
+        blackListMsisdnDao.deleteAllByBlackListId(blackListId);
     }
 
     private BlackList convertDtoToBlackList(BlackListDto dto) throws AccountException {
@@ -88,7 +145,4 @@ public class BlackListService {
         return result;
     }
 
-    public void deleteById(int id) {
-        blackListDao.deleteById(id);
-    }
 }
