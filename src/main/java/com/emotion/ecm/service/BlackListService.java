@@ -53,11 +53,19 @@ public class BlackListService {
         return result;
     }
 
-    public List<BlackListDto> getAllDtoByAccountId(Integer accountId) throws BlackListException {
+    /**
+     * Returns all blacklisted msisdn(dest numbers): global and by account
+     * @param accountId - accountId, nullable
+     * @return if accountId is null returns all existing black list msisdn,
+     *         otherwise - all 'global' (account is null) black lists
+     *         and black lists by selected account
+     */
+    Set<String> getBlacklistedMsisdn(Integer accountId) {
         if (accountId == null) {
-            throw new BlackListException("accountId is null");
+            return blackListMsisdnDao.getAllBlacklistedMsisdn();
+        } else {
+            return blackListMsisdnDao.getBlacklistedMsisdnsByAccount(accountId);
         }
-        return blackListDao.findAllDtoByAccountId(accountId);
     }
 
     public List<String> getAllMsisdnByBlackListId(int blackListId) {

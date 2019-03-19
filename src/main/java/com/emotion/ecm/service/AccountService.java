@@ -66,7 +66,7 @@ public class AccountService {
         return result;
     }
 
-    public String getNameById(Integer accountId) throws AccountException {
+    String getNameById(Integer accountId) throws AccountException {
         if (accountId == null) {
             throw new AccountException("accountId is null");
         }

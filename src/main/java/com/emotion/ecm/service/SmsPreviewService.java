@@ -191,22 +191,22 @@ public class SmsPreviewService {
 
         SmsPreview result = smsPreviewDao.findById(dto.getPreviewId()).orElseGet(SmsPreview::new);
 
-        if (result.getSendDate() != dto.getSendDate()) {
+        if (dto.getSendDate() != result.getSendDate()) {
             result.setSendDate(dto.getSendDate());
         }
-        if (!result.getName().equals(dto.getName())) {
+        if (!dto.getName().equalsIgnoreCase(result.getName())) {
             result.setName(dto.getName());
         }
         if (dto.getStatus() == null || dto.getStatus() == PreviewStatus.CREATED) {
             result.setPreviewStatus(PreviewStatus.CREATED);
         }
-        if (!result.getText().equals(dto.getText())) {
+        if (!dto.getText().equals(result.getText())) {
             result.setText(dto.getText());
         }
-        if (result.getTps() != dto.getTps()) {
+        if (dto.getTps() != result.getTps()) {
             result.setTps(dto.getTps());
         }
-        if (result.isDlr() != dto.isDlr()) {
+        if (dto.isDlr() != result.isDlr()) {
             result.setDlr(dto.isDlr());
         }
         result.setUser(userDao.getOne(dto.getUserId()));

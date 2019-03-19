@@ -1,31 +1,23 @@
 package com.emotion.ecm.service;
 
+import com.emotion.ecm.dao.AppUserDao;
 import com.emotion.ecm.dao.SmsMessageDao;
 import com.emotion.ecm.enums.MessageStatus;
 import com.emotion.ecm.exception.ExpirationTimeException;
 import com.emotion.ecm.exception.PreviewException;
 import com.emotion.ecm.exception.SmppAddressException;
 import com.emotion.ecm.model.*;
-import com.emotion.ecm.model.dto.DeliveryDto;
-import com.emotion.ecm.model.dto.PreviewDto;
-import com.emotion.ecm.model.dto.SmppAddressDto;
-import com.emotion.ecm.model.dto.SubmitSmDto;
+import com.emotion.ecm.model.dto.*;
 import com.emotion.ecm.util.StringUtil;
 import org.jsmpp.bean.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.util.DateUtils;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -43,14 +35,17 @@ public class SmsMessageService {
     private AccountDataService accountDataService;
     private SmppAddressService smppAddressService;
     private ExpirationTimeService expirationTimeService;
+    private BlackListService blackListService;
+    private AppUserDao userDao;
 
-    private final ConcurrentHashMap<Long, List<String>> destinationsMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, List<SmsMessageDto>> destinationsMap = new ConcurrentHashMap<>();
 
     @Autowired
     public SmsMessageService(SmsMessageDao smsMessageDao, SmsPrefixService smsPrefixService,
                              SmsPreviewService smsPreviewService, SmsTextService smsTextService,
                              ContactService contactService, AccountDataService accountDataService,
-                             SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService) {
+                             SmppAddressService smppAddressService, ExpirationTimeService expirationTimeService,
+                             BlackListService blackListService, AppUserDao userDao) {
         this.smsMessageDao = smsMessageDao;
         this.smsPrefixService = smsPrefixService;
         this.smsPreviewService = smsPreviewService;
@@ -59,6 +54,8 @@ public class SmsMessageService {
         this.accountDataService = accountDataService;
         this.smppAddressService = smppAddressService;
         this.expirationTimeService = expirationTimeService;
+        this.blackListService = blackListService;
+        this.userDao = userDao;
     }
 
     @Transactional
@@ -111,6 +108,7 @@ public class SmsMessageService {
                     if (savedMessages.size() > 0) {
                         smsPreviewService.updatePreviewSentCountById(preview.getPreviewId(), messages.size());
                         result.addAll(messages.stream()
+                                .filter(message -> message.getMessageStatus() == MessageStatus.READY)
                                 .map((message) ->
                                         convertMessageToSubmitSmDto(message, smppAddress,
                                                 expTimeValue, preview.isDlr()))
@@ -177,13 +175,13 @@ public class SmsMessageService {
             return result;
         }
 
-        List<String> numbersList = getDestinations(previewDto);
+        List<SmsMessageDto> messageDtoList = getDestinations(previewDto);
 
-        if (numbersList == null) {
-            LOGGER.warn("numbers list is null");
+        if (messageDtoList == null) {
+            LOGGER.warn("message dto list is null");
             return result;
         }
-        if (numbersList.size() == 0) {
+        if (messageDtoList.size() == 0) {
             return result;
         }
 
@@ -203,13 +201,13 @@ public class SmsMessageService {
             return result;
         }
 
-        Iterator<String> iterator = numbersList.iterator();
+        Iterator<SmsMessageDto> iterator = messageDtoList.iterator();
         SmsMessage message;
         while (iterator.hasNext()) {
 
-            String destAddr = iterator.next();
+            SmsMessageDto smsMessageDto = iterator.next();
 
-            SmsPrefix prefix = getPrefixForMsisdn(prefixes, destAddr);
+            SmsPrefix prefix = getPrefixForMsisdn(prefixes, smsMessageDto.getDestAddress());
             boolean stop = false;
             for (int i = 0; i < smsParts.size(); i++) {
                 SmsText smsPart = smsParts.get(i);
@@ -218,8 +216,8 @@ public class SmsMessageService {
                     break;
                 }
                 message = new SmsMessage();
-                message.setDestAddress(destAddr);
-                message.setMessageStatus(MessageStatus.READY);
+                message.setDestAddress(smsMessageDto.getDestAddress());
+                message.setMessageStatus(smsMessageDto.getMessageStatus());
                 message.setPreview(preview);
                 message.setSmsText(smsPart);
                 message.setSmsPrefix(prefix);
@@ -235,9 +233,9 @@ public class SmsMessageService {
         return result;
     }
 
-    private List<String> getDestinations(PreviewDto previewDto) {
+    private List<SmsMessageDto> getDestinations(PreviewDto previewDto) {
 
-        List<String> result = destinationsMap.get(previewDto.getPreviewId());
+        List<SmsMessageDto> result = destinationsMap.get(previewDto.getPreviewId());
 
         final Set<String> sentDestinations = new HashSet<>();
 
@@ -256,20 +254,25 @@ public class SmsMessageService {
             }
         }
 
+        Set<String> blackList = getBlackList(previewDto.getUserId());
+
         Integer accountDataId = previewDto.getAccountDataId();
         Set<Integer> groupIds = previewDto.getGroupIds();
         String phoneNumbers = previewDto.getPhoneNumbers();
         if (accountDataId != null) {
             result = getNumbersFromFile(previewDto.getAccountDataId()).stream()
                     .filter(s -> !sentDestinations.contains(s))
+                    .map(destAddr -> createMessageDto(destAddr, blackList))
                     .collect(Collectors.toList());
         } else if (groupIds != null && !groupIds.isEmpty()) {
             result = getNumbersFromGroup(groupIds).stream()
                     .filter(s -> !sentDestinations.contains(s))
+                    .map(destAddr -> createMessageDto(destAddr, blackList))
                     .collect(Collectors.toList());
         } else if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
             result = getNumbersFromString(phoneNumbers).stream()
                     .filter(s -> !sentDestinations.contains(s))
+                    .map(destAddr -> createMessageDto(destAddr, blackList))
                     .collect(Collectors.toList());
         }
 
@@ -281,6 +284,29 @@ public class SmsMessageService {
         }
 
         return result;
+    }
+
+    private SmsMessageDto createMessageDto(String destAddr, Set<String> blackList) {
+        SmsMessageDto result = new SmsMessageDto();
+        result.setDestAddress(destAddr);
+        result.setMessageStatus(MessageStatus.READY);
+        if (blackList != null && blackList.contains(destAddr)) {
+            result.setMessageStatus(MessageStatus.BLACKLISTED);
+        }
+        return result;
+    }
+
+    private Set<String> getBlackList(int userId) {
+        try {
+            Optional<AppUser> optional = userDao.findById(userId);
+            if (optional.isPresent()) {
+                Integer accountId = optional.get().getAccount().getId();
+                return blackListService.getBlacklistedMsisdn(accountId);
+            }
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+        }
+        return new HashSet<>();
     }
 
     private List<SmsText> createSmsParts(String initialText) {
