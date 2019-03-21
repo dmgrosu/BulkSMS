@@ -39,9 +39,10 @@ public class UserDto {
     public UserDto() {
     }
 
-    public UserDto(int userId, int accountId) {
+    public UserDto(int userId, int accountId, String username) {
         this.userId = userId;
         this.accountId = accountId;
+        this.username = username;
     }
 
     public UserDto(int id, String firstName, String lastName, String email,
@@ -54,6 +55,10 @@ public class UserDto {
         this.status = status;
         this.accountId = accountId;
         this.accountName = accountName;
+    }
+
+    public String getFullName() {
+        return this.firstName + " " + this.lastName;
     }
 
 }

@@ -3,5 +3,6 @@ package com.emotion.ecm.enums;
 public enum RoleName {
     ADMIN,
     USER,
-    MODERATOR
+    MODERATOR,
+    REPORT_USER,
 }

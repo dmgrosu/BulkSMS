@@ -17,10 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class AppUserService {
@@ -92,6 +89,16 @@ public class AppUserService {
         }
     }
 
+    public List<UserDto> getAllDtoByAccountId(Integer accountId) {
+        if (accountId == null) {
+            LOG.error("accountId is null");
+            return new ArrayList<>();
+        }
+        Set<Integer> accountIds = new HashSet<>();
+        accountIds.add(accountId);
+        return appUserDao.findAllDtoByAccountIds(accountIds);
+    }
+
     private AppUser convertUserDtoToUser(UserDto userDto) {
         AppUser result = new AppUser();
         result.setFirstName(userDto.getFirstName());
@@ -102,8 +109,7 @@ public class AppUserService {
     }
 
     private AppRole createNewUserRole() {
-        AppRole role = new AppRole();
-        role.setName(RoleName.USER);
+        AppRole role = new AppRole(RoleName.USER);
         return appRoleDao.save(role);
     }
 

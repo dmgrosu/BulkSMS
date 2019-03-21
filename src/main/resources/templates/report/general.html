@@ -14,7 +14,190 @@
 
 <div th:replace="fragments/navbar"></div>
 
-<h1>General report</h1>
+<div class="container-fluid">
+    <h3>General report</h3>
+    <div class="well">
+        <form class="form-inline">
+            <div class="form-group">
+                <label for="startDate" class="control-label">From:</label>
+                <input type="date" class="form-control" id="startDate">
+            </div>
+            <div class="form-group">
+                <label for="endDate" class="control-label">To:</label>
+                <input type="date" class="form-control" id="endDate">
+            </div>
+            <div class="form-group">
+                <label for="accountSelect">Account:</label>
+                <select class="form-control" id="accountSelect" onchange="updateUserList()">
+                    <option th:if="${role=='ADMIN'}" th:value="null">-all accounts-</option>
+                    <option th:each="item : ${accounts}"
+                            th:value="${item.accountId}"
+                            th:text="${item.name}">
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="userSelect">User:</label>
+                <select class="form-control" id="userSelect">
+                    <option th:value="null">-all users-</option>
+                    <option th:each="item : ${users}"
+                            th:value="${item.userId}"
+                            th:text="${item.username}">
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="detailSelect" class="control-label">Detailing:</label>
+                <select multiple="multiple" class="form-control" name="groupSelect[]" id="detailSelect">
+                    <option value="status">by statuses</option>
+                    <option value="prefix">by prefixes</option>
+                    <option value="smppAddr">by originators</option>
+                    <option value="preview">by previews</option>
+                </select>
+            </div>
+            <button type="button" onClick="generateReport()" class="btn btn-info">Generate</button>
+        </form>
+    </div>
+
+    <div class="alert alert-warning" id="validationWarning" hidden>
+
+    </div>
+
+    <div class="container">
+        <div class="loader" id="spinner" hidden></div>
+        <table class="table table-condensed table-hover" id="reportTable">
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
+</div>
 
 </body>
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        $('#detailSelect').multiselect();
+    });
+
+    function getSelectedDetails() {
+        var result = [];
+        $('#detailSelect option:selected').each(function () {
+            result.push($(this).val())
+        });
+        return result;
+    }
+
+    function generateReport() {
+        const startDate = $('#startDate').val();
+        const endDate = $('#endDate').val();
+        const accountEl = $('#accountSelect');
+        const userEl = $('#userSelect');
+        const data = {
+            "startDate": startDate,
+            "endDate": endDate,
+            "accountId": accountEl.val(),
+            "accountName": accountEl.find('option:selected').text(),
+            "userId": userEl.val(),
+            "username": userEl.find('option:selected').text(),
+            "details": getSelectedDetails()
+        };
+        $('#reportTable > tbody').empty();
+        const spinner = $('#spinner');
+        spinner.show();
+        clearErrors();
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/report/general',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function (result) {
+                spinner.hide();
+                if (isArray(result)) { // validation error
+                    showValidationError(result);
+                } else {
+                    generateReportResult(result);
+                }
+            },
+            error: function () {
+                spinner.hide();
+                showError('Internal server error');
+            }
+        });
+    }
+
+    function isArray(value) {
+        return value && typeof value === 'object' && value.constructor === Array;
+    }
+
+    function showValidationError(errors) {
+        for (let i = 0; i < errors.length; i++) {
+            showError(errors[i].field + ': ' + errors[i].defaultMessage);
+        }
+    }
+
+    function showError(error) {
+        const warningEl = $('#validationWarning');
+        warningEl.append('<p>' + error + '</p>');
+        warningEl.show();
+    }
+
+    function clearErrors() {
+        const warning = $('#validationWarning');
+        warning.empty();
+        warning.hide();
+    }
+
+    function generateReportResult(report) {
+        createReportRow(true, 'Account', report.accountName);
+        createReportRow(true, 'User', report.username);
+        createReportRow(true, 'Period', report.period);
+        createReportRow(true, 'Total messages created', report.totalCount);
+        createReportRow(true, 'Total messages sent', report.totalSentCount);
+        createReportRow(true, 'Total messages NOT sent', report.totalNotSentCount);
+        createCountRows(report.countByStatus, 'Message counts by statuses');
+        createCountRows(report.countByPrefix, 'Message counts by prefixes');
+        createCountRows(report.countBySmppAddress, 'Message counts by originators');
+        createCountRows(report.countByPreview, 'Message counts by previews');
+    }
+
+    function createCountRows(array, caption) {
+        if (array.length > 0) {
+            createReportRow(true, caption, '');
+            for (let i = 0; i < array.length; i++) {
+                createReportRow(false, array[i].criteriaName, array[i].count);
+            }
+        }
+    }
+
+    function createReportRow(bold, label, value) {
+        const B1 = bold ? '<strong>' : '';
+        const B2 = bold ? '</strong>' : '';
+        $('#reportTable > tbody').append('<tr><td>' + B1 + label + B2 + '</td><td>' + value + '</td></tr>');
+    }
+
+    function updateUserList() {
+        const userSelect = $('#userSelect');
+        userSelect.empty();
+        userSelect.append('<option value>-all users-</option>');
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: '/report/userList',
+            data: {"accountId": $('#accountSelect').val()},
+            dataType: "JSON",
+            success: function (result) {
+                for (let i = 0; i < result.length; i++) {
+                    userSelect.append('<option value="'+result[i].userId+'">'+result[i].username+'</option>');
+                }
+            },
+            error: function () {
+            }
+        });
+    }
+
+</script>
+
 </html>

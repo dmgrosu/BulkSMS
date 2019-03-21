@@ -23,8 +23,8 @@ public interface AppUserDao extends JpaRepository<AppUser, Integer> {
             "from AppUser u")
     List<UserDto> findAllDto();
 
-    @Query(value = "select new com.emotion.ecm.model.dto.UserDto(u.id, u.account.id) " +
-            "from AppUser u where u.account.id in (?1)")
+    @Query(value = "select new com.emotion.ecm.model.dto.UserDto(id, account.id, username) " +
+            "from AppUser where account.id in (?1)")
     List<UserDto> findAllDtoByAccountIds(Set<Integer> accountIds);
 
 }

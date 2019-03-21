@@ -55,6 +55,13 @@ public class AccountService {
         accountDao.deleteById(id);
     }
 
+    String getNameById(Integer accountId) throws AccountException {
+        if (accountId == null) {
+            throw new AccountException("accountId is null");
+        }
+        return accountDao.findNameById(accountId);
+    }
+
     private Account convertDtoToAccount(AccountDto dto) {
 
         Account result = accountDao.findById(dto.getAccountId()).orElseGet(Account::new);
@@ -66,10 +73,4 @@ public class AccountService {
         return result;
     }
 
-    String getNameById(Integer accountId) throws AccountException {
-        if (accountId == null) {
-            throw new AccountException("accountId is null");
-        }
-        return accountDao.findNameById(accountId);
-    }
 }

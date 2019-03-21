@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import javax.persistence.*;
 
 @Data
-@NoArgsConstructor
 @Entity
 @Table(name = "TB_ROLE")
 public class AppRole {
@@ -20,4 +19,7 @@ public class AppRole {
     @Enumerated(EnumType.STRING)
     private RoleName name;
 
+    public AppRole(RoleName name) {
+        this.name = name;
+    }
 }

@@ -14,7 +14,55 @@
 
 <div th:replace="fragments/navbar"></div>
 
-<h1>Preview details report</h1>
+<div class="container-fluid">
+    <h3>Preview report</h3>
+    <div class="well">
+        <form class="form-inline">
+            <div class="form-group">
+                <label for="startDate" class="control-label">From:</label>
+                <input type="date" class="form-control" id="startDate">
+            </div>
+            <div class="form-group">
+                <label for="endDate" class="control-label">To:</label>
+                <input type="date" class="form-control" id="endDate">
+            </div>
+            <div class="form-group">
+                <label for="accountSelect">Account:</label>
+                <select class="form-control" id="accountSelect" onchange="updateUserList()">
+                    <option th:if="${role=='ADMIN'}" th:value="null">-all accounts-</option>
+                    <option th:each="item : ${accounts}"
+                            th:value="${item.accountId}"
+                            th:text="${item.name}">
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="userSelect">User:</label>
+                <select class="form-control" id="userSelect">
+                    <option th:value="null">-all users-</option>
+                    <option th:each="item : ${users}"
+                            th:value="${item.userId}"
+                            th:text="${item.username}">
+                    </option>
+                </select>
+            </div>
+            <button type="button" onClick="generateReport()" class="btn btn-info">Generate</button>
+        </form>
+    </div>
+
+    <div class="alert alert-warning" id="validationWarning" hidden>
+
+    </div>
+
+    <div class="container">
+        <div class="loader" id="spinner" hidden></div>
+        <table class="table table-condensed table-hover" id="reportTable">
+            <tbody>
+
+            </tbody>
+        </table>
+    </div>
+</div>
 
 </body>
 </html>
