@@ -4,12 +4,16 @@ import com.emotion.ecm.dao.SmsMessageDao;
 import com.emotion.ecm.dao.SmsPreviewDao;
 import com.emotion.ecm.enums.MessageStatus;
 import com.emotion.ecm.exception.ReportException;
+import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.report.MessageCount;
 import com.emotion.ecm.model.dto.report.ReportGeneral;
+import com.emotion.ecm.model.dto.report.ReportPreview;
 import com.emotion.ecm.model.dto.report.ReportRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,12 +26,14 @@ import java.util.Set;
 public class ReportService {
 
     private SmsMessageDao smsMessageDao;
+    private SmsPreviewDao smsPreviewDao;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReportService.class);
 
     @Autowired
-    public ReportService(SmsMessageDao smsMessageDao) {
+    public ReportService(SmsMessageDao smsMessageDao, SmsPreviewDao smsPreviewDao) {
         this.smsMessageDao = smsMessageDao;
+        this.smsPreviewDao = smsPreviewDao;
     }
 
     public ReportGeneral generateGeneralReport(ReportRequest reportRequest) throws ReportException {
@@ -68,7 +74,7 @@ public class ReportService {
             }
         } catch (Exception ex) {
             LOGGER.error(ex.getMessage(), ex);
-            throw new ReportException("Dao layer exception in generateGeneralReport");
+            throw new ReportException("dao layer exception in generateGeneralReport");
         }
 
         long[] totals = getTotals(countByStatus);
@@ -78,6 +84,20 @@ public class ReportService {
         result.setTotalNotSentCount(totals[2]);
 
         return result;
+    }
+
+    public ReportPreview generatePreviewReport(ReportRequest reportRequest, int pageNumber, int pageSize) throws ReportException {
+        Integer accountId = reportRequest.getAccountId();
+        Integer userId = reportRequest.getUserId();
+        Pageable pageRequest = PageRequest.of(pageNumber, pageSize);
+        if (accountId == null) {
+
+        } else if (userId == null) {
+
+        } else {
+            List<PreviewDto> allDtoByUser = smsPreviewDao.findAllDtoByUserId(userId, pageRequest);
+        }
+        return null;
     }
 
     private long[] getTotals(List<MessageCount> countList) {

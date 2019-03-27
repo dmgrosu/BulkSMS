@@ -8,6 +8,7 @@ import com.emotion.ecm.model.AppRole;
 import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.dto.AccountDto;
 import com.emotion.ecm.model.dto.report.ReportGeneral;
+import com.emotion.ecm.model.dto.report.ReportPreview;
 import com.emotion.ecm.model.dto.report.ReportRequest;
 import com.emotion.ecm.model.dto.UserDto;
 import com.emotion.ecm.service.AccountService;
@@ -46,7 +47,7 @@ public class ReportController {
     @GetMapping(value = "/general")
     public String generalReport(Model model) {
         try {
-            model.addAllAttributes(getRaportAttributes());
+            model.addAllAttributes(getReportAttributes());
         } catch (AuthorisationException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             return "error";
@@ -66,7 +67,7 @@ public class ReportController {
     @GetMapping(value = "/preview")
     public String previewReport(Model model) {
         try {
-            model.addAllAttributes(getRaportAttributes());
+            model.addAllAttributes(getReportAttributes());
         } catch (AuthorisationException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             return "error";
@@ -103,7 +104,29 @@ public class ReportController {
         }
     }
 
-    private Map<String, Object> getRaportAttributes() throws AuthorisationException {
+    @PostMapping(value = "/preview")
+    @ResponseBody
+    public ResponseEntity<?> generatePreviewReport(@Valid @RequestBody ReportRequest reportRequest,
+                                                   BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.ok(bindingResult.getFieldErrors());
+        }
+        if (reportRequest.getEndDate().isBefore(reportRequest.getStartDate())) {
+            bindingResult.rejectValue("endDate", "endDate.error", "must be after startDate");
+            return ResponseEntity.ok(bindingResult.getFieldErrors());
+        }
+        try {
+            ReportPreview report = reportService.generatePreviewReport(reportRequest);
+            return ResponseEntity.ok(report);
+        } catch (ReportException ex) {
+            LOGGER.error(ex.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+
+    private Map<String, Object> getReportAttributes() throws AuthorisationException {
         Map<String, Object> result = new HashMap<>();
         AppUser user = userService.getAuthenticatedUser();
         Set<AppRole> userRoles = user.getRoles();

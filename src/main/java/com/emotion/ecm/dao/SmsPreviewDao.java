@@ -5,6 +5,8 @@ import com.emotion.ecm.model.AppUser;
 import com.emotion.ecm.model.SmsPreview;
 import com.emotion.ecm.model.dto.PreviewDto;
 import com.emotion.ecm.model.dto.PreviewGroupDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -37,7 +39,7 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
             "where user.id = ?1 " +
             "and finishDate is null " +
             "order by sendDate desc")
-    List<PreviewDto> findAllNotFinishedDtoByUserId(int id);
+    List<PreviewDto> findAllNotFinishedDtoByUserId(int id, Pageable pageable);
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
             "(id, name, sendDate, text, tps, recipientsCount, totalParts, sentParts, " +
@@ -46,7 +48,7 @@ public interface SmsPreviewDao extends JpaRepository<SmsPreview, Long> {
             "from SmsPreview " +
             "where user.id = ?1 " +
             "order by sendDate desc")
-    List<PreviewDto> findAllDtoByUserId(int id);
+    List<PreviewDto> findAllDtoByUserId(int id, Pageable pageable);
 
     @Query("select new com.emotion.ecm.model.dto.PreviewDto" +
             "(id, name, createDate, sendDate, text, tps, previewStatus, phoneNumbers, " +

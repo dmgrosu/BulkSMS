@@ -56,7 +56,7 @@
 
     <div class="container">
         <div class="loader" id="spinner" hidden></div>
-        <table class="table table-condensed table-hover" id="reportTable">
+        <table class="table table-condensed table-bordered table-hover" id="reportTable">
             <tbody>
 
             </tbody>
@@ -65,4 +65,93 @@
 </div>
 
 </body>
+
+<script type="text/javascript" >
+
+    function generateReport() {
+        const startDate = $('#startDate').val();
+        const endDate = $('#endDate').val();
+        const accountEl = $('#accountSelect');
+        const userEl = $('#userSelect');
+        const data = {
+            "startDate": startDate,
+            "endDate": endDate,
+            "accountId": accountEl.val(),
+            "accountName": accountEl.find('option:selected').text(),
+            "userId": userEl.val(),
+            "username": userEl.find('option:selected').text(),
+        };
+        $('#reportTable > tbody').empty();
+        const spinner = $('#spinner');
+        spinner.show();
+        clearErrors();
+        $.ajax({
+            type: 'POST',
+            contentType: "application/json",
+            url: '/report/preview',
+            data: JSON.stringify(data),
+            dataType: "JSON",
+            success: function (result) {
+                spinner.hide();
+                if (isArray(result)) { // validation error
+                    showValidationError(result);
+                } else {
+                    generateReportResult(result);
+                }
+            },
+            error: function () {
+                spinner.hide();
+                showError('Internal server error');
+            }
+        });
+    }
+
+    function generateReportResult(report) {
+
+    }
+
+    function updateUserList() {
+        const userSelect = $('#userSelect');
+        userSelect.empty();
+        userSelect.append('<option value>-all users-</option>');
+        $.ajax({
+            type: 'GET',
+            contentType: "application/json",
+            url: '/report/userList',
+            data: {"accountId": $('#accountSelect').val()},
+            dataType: "JSON",
+            success: function (result) {
+                for (let i = 0; i < result.length; i++) {
+                    userSelect.append('<option value="'+result[i].userId+'">'+result[i].username+'</option>');
+                }
+            },
+            error: function () {
+            }
+        });
+    }
+
+    function isArray(value) {
+        return value && typeof value === 'object' && value.constructor === Array;
+    }
+
+    function showValidationError(errors) {
+        for (let i = 0; i < errors.length; i++) {
+            showError(errors[i].field + ': ' + errors[i].defaultMessage);
+        }
+    }
+
+    function showError(error) {
+        const warningEl = $('#validationWarning');
+        warningEl.append('<p>' + error + '</p>');
+        warningEl.show();
+    }
+
+    function clearErrors() {
+        const warning = $('#validationWarning');
+        warning.empty();
+        warning.hide();
+    }
+
+</script>
+
 </html>

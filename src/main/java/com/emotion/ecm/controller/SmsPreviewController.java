@@ -57,7 +57,7 @@ public class SmsPreviewController {
     @GetMapping(value = "/list")
     public String showList(@RequestParam(value = "finished", required = false) boolean showFinished, Model model) {
         AppUser user = userService.getAuthenticatedUser();
-        List<PreviewDto> previews = smsPreviewService.getAllDtoByUserId(user.getId(), showFinished);
+        List<PreviewDto> previews = smsPreviewService.getAllDtoByUserId(user.getId(), showFinished, 0, 1000);
         model.addAttribute("previews", previews);
         model.addAttribute("showFinished", showFinished);
         return "preview/list";
